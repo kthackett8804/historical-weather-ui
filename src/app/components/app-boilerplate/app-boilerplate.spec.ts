@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { AppShell } from './app-shell';
+import { AppShell } from './app-boilerplate';
 
 @Component({
   standalone: true,
@@ -32,7 +32,7 @@ describe('AppShell', () => {
       ['My Weather', '/favourites'],
       ['Compare', '/comparison'],
       ['Reviews', '/reviews'],
-      ['My Account', '/profile/preview'],
+      ['My Account', '/account'],
       ['Admin', '/admin/users'],
     ]);
   });
@@ -47,15 +47,15 @@ describe('AppShell', () => {
     const navigation = fixture.nativeElement.querySelector('#primary-navigation') as HTMLElement;
 
     expect(menuButton.getAttribute('aria-expanded')).toBe('false');
-    expect(navigation.classList.contains('is-open')).toBe(false);
+    expect(navigation.classList.contains('open')).toBe(false);
     menuButton.click();
     fixture.detectChanges();
     expect(menuButton.getAttribute('aria-expanded')).toBe('true');
-    expect(navigation.classList.contains('is-open')).toBe(true);
+    expect(navigation.classList.contains('open')).toBe(true);
     menuButton.click();
     fixture.detectChanges();
     expect(menuButton.getAttribute('aria-expanded')).toBe('false');
-    expect(navigation.classList.contains('is-open')).toBe(false);
+    expect(navigation.classList.contains('open')).toBe(false);
   });
 
   it('marks the active route in the primary navigation', async () => {
