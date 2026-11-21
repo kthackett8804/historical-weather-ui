@@ -41,4 +41,15 @@ describe('Account', () => {
       fixture.nativeElement.ownerDocument.activeElement,
     );
   });
+
+  it('links the account page to the current-user profile preview', () => {
+    const fixture = TestBed.createComponent(Account);
+    fixture.detectChanges();
+
+    const profileLink = fixture.nativeElement.querySelector(
+      'a[routerLink="/profile/me"]',
+    ) as HTMLAnchorElement;
+
+    expect(profileLink?.getAttribute('href')).toBe('/profile/me');
+  });
 });

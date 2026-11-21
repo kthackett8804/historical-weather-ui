@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Login } from '../login/login';
 import { Register } from '../register/register';
 
@@ -6,13 +7,14 @@ type AccountTab = 'login' | 'register';
 
 @Component({
   selector: 'app-account',
-  imports: [Login, Register],
+  imports: [Login, Register, RouterLink],
   template: `
     <section aria-labelledby="account-title">
       <header class="page-heading">
         <p class="eyebrow">WEATHER ATLAS</p>
         <h1 id="account-title">My Account</h1>
         <p>Sign in or create an account. Account services are not connected in this preview.</p>
+        <a class="profile-link" routerLink="/profile/me">View profile preview</a>
       </header>
 
       <div class="account-panel">
@@ -78,6 +80,12 @@ type AccountTab = 'login' | 'register';
     .page-heading > p:last-child {
       margin-block: 0;
       color: #536b87;
+    }
+    .profile-link {
+      display: inline-block;
+      margin-top: 0.75rem;
+      color: #1d67c8;
+      font-weight: 700;
     }
     .account-panel {
       max-width: 32rem;
