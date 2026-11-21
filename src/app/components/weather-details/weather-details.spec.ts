@@ -1,4 +1,4 @@
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { WeatherDetails } from './weather-details';
 
@@ -6,6 +6,7 @@ async function configureWeatherDetails(weatherId: string | null) {
   await TestBed.configureTestingModule({
     imports: [WeatherDetails],
     providers: [
+      provideRouter([]),
       {
         provide: ActivatedRoute,
         useValue: {
@@ -21,22 +22,17 @@ describe('WeatherDetails with a weather ID', () => {
     await configureWeatherDetails('weather-1');
   });
 
-  it('explains that no weather record is loaded', () => {
+  it('loads the selected sample weather and its reviews on initialization', () => {
     const fixture = TestBed.createComponent(WeatherDetails);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Weather Details');
     expect(fixture.nativeElement.querySelector('[role="status"]')?.textContent).toContain(
-      'No weather record is loaded',
+      'Vancouver, Canada',
     );
-  });
-
-  it('includes an empty reviews section without fabricated reviews', () => {
-    const fixture = TestBed.createComponent(WeatherDetails);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('h2')?.textContent).toContain('Reviews');
-    expect(fixture.nativeElement.textContent).toContain('No reviews are available for this record');
+    expect(fixture.nativeElement.textContent).toContain('Partly cloudy');
+    expect(fixture.nativeElement.textContent).toContain('Maya Chen');
+    expect(fixture.nativeElement.textContent).not.toContain('Jonas Einarsson');
   });
 
   it('provides required rating and review fields', () => {
@@ -95,5 +91,26 @@ describe('WeatherDetails without a weather ID', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'Review form is unavailable until a weather record is selected',
     );
+  });
+});
+
+describe('WeatherDetails with another weather ID', () => {
+  beforeEach(async () => {
+    await configureWeatherDetails('weather-2');
+  });
+
+  it('displays the matching record, review, and related route links', () => {
+    const fixture = TestBed.createComponent(WeatherDetails);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Reykjavik, Iceland');
+    expect(fixture.nativeElement.textContent).toContain('Jonas Einarsson');
+    expect(fixture.nativeElement.textContent).not.toContain('Maya Chen');
+    expect(
+      fixture.nativeElement.querySelector('a[href="/weather/weather-2/air-quality"]'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('a[href="/weather/weather-2/astronomical-events"]'),
+    ).not.toBeNull();
   });
 });
