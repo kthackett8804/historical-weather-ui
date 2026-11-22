@@ -1,45 +1,36 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
+import { of } from 'rxjs';
 import { Account } from './account';
 
 describe('Account', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Account],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        {
+          provide: AuthService,
+          useValue: {
+            isLoading$: of(false),
+            isAuthenticated$: of(false),
+            user$: of(null),
+            error$: of(null),
+            loginWithRedirect: () => of(undefined),
+            logout: () => of(undefined),
+          },
+        },
+      ],
     }).compileComponents();
   });
 
-  it('shows the login form by default and switches to registration', () => {
+  it('shows the Auth0 login and signup controls', () => {
     const fixture = TestBed.createComponent(Account);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('#login-panel form')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('#register-panel form')).toBeNull();
-
-    const registerTab = fixture.nativeElement.querySelector('#register-tab') as HTMLButtonElement;
-    registerTab.click();
-    fixture.detectChanges();
-
-    expect(registerTab.getAttribute('aria-selected')).toBe('true');
-    expect(fixture.nativeElement.querySelector('#register-panel form')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('#login-panel form')).toBeNull();
-  });
-
-  it('supports arrow-key navigation between account tabs', () => {
-    const fixture = TestBed.createComponent(Account);
-    fixture.detectChanges();
-
-    const loginTab = fixture.nativeElement.querySelector('#login-tab') as HTMLButtonElement;
-    loginTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('#register-tab').getAttribute('aria-selected')).toBe(
-      'true',
-    );
-    expect(fixture.nativeElement.querySelector('#register-tab')).toBe(
-      fixture.nativeElement.ownerDocument.activeElement,
-    );
+    expect(fixture.nativeElement.querySelector('[data-auth-login]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-auth-signup]')).toBeTruthy();
   });
 
   it('links the account page to the current-user profile preview', () => {

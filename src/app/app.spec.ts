@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
+import { of } from 'rxjs';
 import { App } from './app';
 import { routes } from './app.routes';
 
@@ -7,7 +9,20 @@ describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter(routes)],
+      providers: [
+        provideRouter(routes),
+        {
+          provide: AuthService,
+          useValue: {
+            isLoading$: of(false),
+            isAuthenticated$: of(false),
+            user$: of(null),
+            error$: of(null),
+            loginWithRedirect: () => of(undefined),
+            logout: () => of(undefined),
+          },
+        },
+      ],
     })
       .compileComponents();
   });
@@ -30,7 +45,7 @@ describe('App', () => {
     expect(compiled.textContent).not.toContain('Hello, historical-weather-ui');
   });
 
-  it('opens the login and registration tabs from My Account', async () => {
+  it('opens the Auth0 login and signup controls from My Account', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/account');
@@ -44,10 +59,7 @@ describe('App', () => {
       compiled.querySelector('nav[aria-label="Main navigation"] a[aria-current="page"]')
         ?.textContent,
     ).toContain('My Account');
-    expect(compiled.querySelector('#login-panel form')).toBeTruthy();
-
-    (compiled.querySelector('#register-tab') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(compiled.querySelector('#register-panel form')).toBeTruthy();
+    expect(compiled.querySelector('[data-auth-login]')).toBeTruthy();
+    expect(compiled.querySelector('[data-auth-signup]')).toBeTruthy();
   });
 });

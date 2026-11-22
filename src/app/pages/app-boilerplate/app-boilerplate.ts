@@ -1,9 +1,11 @@
-import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
   template: `
     <header>
       <a class="brand" routerLink="/" aria-label="Weather Atlas dashboard">☁ Weather Atlas</a>
@@ -12,6 +14,13 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         <a routerLink="/analytics">Analyse</a>
         <a routerLink="/comparison">Compare</a>
       </nav>
+      @if (!(auth.isLoading$ | async)) {
+        @if (auth.isAuthenticated$ | async) {
+          <button type="button" class="auth-button" (click)="logout()">Log out</button>
+        } @else {
+          <a class="auth-button" routerLink="/account">Log in</a>
+        }
+      }
       <button
         class="menu-toggle"
         type="button"
@@ -73,6 +82,17 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     }
     .menu-toggle {
       display: none;
+    }
+    .auth-button {
+      min-height: 2.75rem;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid #a9bdd5;
+      border-radius: 0.25rem;
+      color: white;
+      background: transparent;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
     }
     .layout {
       display: grid;
@@ -152,6 +172,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   `,
 })
 export class AppShell {
+  protected readonly auth = inject(AuthService);
   protected menuOpen = false;
   protected readonly navLinks = [
     { label: 'Dashboard', path: '/', exact: true },
@@ -163,4 +184,10 @@ export class AppShell {
     { label: 'My Account', path: '/account', exact: false },
     { label: 'Admin', path: '/admin/users', exact: false },
   ];
+
+  protected logout(): void {
+    this.auth.logout({
+      logoutParams: { returnTo: window.location.origin },
+    });
+  }
 }

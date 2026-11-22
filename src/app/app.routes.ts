@@ -12,7 +12,6 @@ import { Login } from './pages/login/login';
 import { NearbyWeather } from './pages/nearby-weather/nearby-weather';
 import { NotFound } from './pages/not-found/not-found';
 import { Profile } from './pages/profile/profile';
-import { Register } from './pages/register/register';
 import { Reviews } from './pages/reviews/reviews';
 import { WeatherDetails } from './pages/weather-details/weather-details';
 import { WeatherSearch } from './pages/weather-search/weather-search';
@@ -20,7 +19,6 @@ import { Weather } from './pages/weather/weather';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
-  { path: 'register', component: Register },
   {
     path: '',
     component: AppShell,

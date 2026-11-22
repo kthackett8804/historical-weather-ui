@@ -1,22 +1,21 @@
-import { AppShell } from './components/app-boilerplate/app-boilerplate';
-import { Analytics } from './components/analytics/analytics';
-import { Home } from './components/home/home';
-import { Login } from './components/login/login';
-import { NotFound } from './components/not-found/not-found';
-import { Register } from './components/register/register';
+import { AppShell } from './pages/app-boilerplate/app-boilerplate';
+import { Analytics } from './pages/analytics/analytics';
+import { Home } from './pages/home/home';
+import { Login } from './pages/login/login';
+import { NotFound } from './pages/not-found/not-found';
 import { routes } from './app.routes';
-import { AirQuality } from './components/air-quality/air-quality';
-import { AstronomicalEvents } from './components/astronomical-events/astronomical-events';
-import { NearbyWeather } from './components/nearby-weather/nearby-weather';
-import { WeatherDetails } from './components/weather-details/weather-details';
-import { WeatherSearch } from './components/weather-search/weather-search';
-import { Weather } from './components/weather/weather';
-import { Comparison } from './components/comparison/comparison';
-import { Favourites } from './components/favourites/favourites';
-import { Profile } from './components/profile/profile';
-import { AdminUsers } from './components/admin-users/admin-users';
-import { Account } from './components/account/account';
-import { Reviews } from './components/reviews/reviews';
+import { AirQuality } from './pages/air-quality/air-quality';
+import { AstronomicalEvents } from './pages/astronomical-events/astronomical-events';
+import { NearbyWeather } from './pages/nearby-weather/nearby-weather';
+import { WeatherDetails } from './pages/weather-details/weather-details';
+import { WeatherSearch } from './pages/weather-search/weather-search';
+import { Weather } from './pages/weather/weather';
+import { Comparison } from './pages/comparison/comparison';
+import { Favourites } from './pages/favourites/favourites';
+import { Profile } from './pages/profile/profile';
+import { AdminUsers } from './pages/admin-users/admin-users';
+import { Account } from './pages/account/account';
+import { Reviews } from './pages/reviews/reviews';
 
 describe('routes', () => {
   const shellRoute = routes.find((route) => route.path === '');
@@ -24,7 +23,6 @@ describe('routes', () => {
 
   it('keeps authentication pages standalone and places storyboard pages in AppShell', () => {
     expect(routes.find((route) => route.path === 'login')?.component).toBe(Login);
-    expect(routes.find((route) => route.path === 'register')?.component).toBe(Register);
     expect(shellRoute?.component).toBe(AppShell);
     expect(childRoutes.find((route) => route.path === '')?.component).toBe(Home);
     expect(childRoutes.find((route) => route.path === 'dashboard')?.component).toBe(Home);

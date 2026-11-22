@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
+import { of } from 'rxjs';
 import { AppShell } from './app-boilerplate';
 
 @Component({
@@ -13,7 +15,20 @@ describe('AppShell', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppShell],
-      providers: [provideRouter([{ path: '**', component: TestRoute }])],
+      providers: [
+        provideRouter([{ path: '**', component: TestRoute }]),
+        {
+          provide: AuthService,
+          useValue: {
+            isLoading$: of(false),
+            isAuthenticated$: of(false),
+            user$: of(null),
+            error$: of(null),
+            loginWithRedirect: () => of(undefined),
+            logout: () => of(undefined),
+          },
+        },
+      ],
     }).compileComponents();
   });
 

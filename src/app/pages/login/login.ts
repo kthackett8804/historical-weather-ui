@@ -1,9 +1,11 @@
-import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, inject, Input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
 
 @Component({
   selector: 'app-login',
-  imports: [RouterLink],
+  imports: [CommonModule, RouterLink],
   host: {
     '[class.embedded]': 'embedded',
   },
@@ -15,44 +17,17 @@ import { RouterLink } from '@angular/router';
         }
         <h1 id="login-title">Weather Atlas</h1>
         <p>Welcome back</p>
-        <form novalidate (submit)="submit(); $event.preventDefault()">
-          <label for="email">Email address</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            required
-            aria-describedby="email-error"
-            [attr.aria-invalid]="submitted && emailInvalid"
-            #emailInput
-            (input)="emailValue = emailInput.value"
-          />
-          @if (submitted && emailInvalid) {
-            <p class="error" id="email-error">Enter a valid email address.</p>
+        @if (auth.isLoading$ | async) {
+          <p role="status">Loading authentication...</p>
+        } @else if ((auth.isAuthenticated$ | async) && (auth.user$ | async); as user) {
+          <p>Logged in as {{ user.email }}</p>
+          <button type="button" (click)="logout()">Logout</button>
+        } @else {
+          @if (auth.error$ | async; as error) {
+            <p class="error" role="alert">{{ error.message }}</p>
           }
-          <label for="password">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            required
-            aria-describedby="password-error"
-            [attr.aria-invalid]="submitted && passwordInvalid"
-            #passwordInput
-            (input)="passwordValue = passwordInput.value"
-          />
-          @if (submitted && passwordInvalid) {
-            <p class="error" id="password-error">Enter your password.</p>
-          }
-          <button type="submit">Login</button>
-        </form>
-        @if (notice) {
-          <p role="status">{{ notice }}</p>
-        }
-        @if (!embedded) {
-          <p>New to Weather Atlas? <a routerLink="/register">Create an account</a></p>
+          <button data-auth-login type="button" (click)="login()">Log In</button>
+          <button data-auth-signup type="button" (click)="signUp()">Sign Up</button>
         }
       </section>
     </div>
@@ -101,25 +76,13 @@ import { RouterLink } from '@angular/router';
     section > p {
       color: #475b73;
     }
-    form {
-      display: grid;
-      gap: 0.5rem;
-      margin-top: 1.5rem;
-      text-align: left;
+    section > button {
+      display: block;
+      width: 100%;
+      margin-top: 0.75rem;
     }
-    label {
-      font-weight: 700;
-    }
-    input {
-      min-height: 2.75rem;
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #9aabc0;
-      border-radius: 0.25rem;
-      font: inherit;
-    }
-    input:focus-visible,
-    a:focus-visible,
-    button:focus-visible {
+    button:focus-visible,
+    a:focus-visible {
       outline: 3px solid #1d67c8;
       outline-offset: 2px;
     }
@@ -146,25 +109,21 @@ import { RouterLink } from '@angular/router';
 })
 export class Login {
   @Input() embedded = false;
-  protected emailValue = '';
-  protected passwordValue = '';
-  protected submitted = false;
-  protected notice = '';
+  protected readonly auth = inject(AuthService);
 
-  protected get emailInvalid(): boolean {
-    return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.emailValue.trim());
+  protected login(): void {
+    this.auth.loginWithRedirect();
   }
 
-  protected get passwordInvalid(): boolean {
-    return !this.passwordValue.trim();
+  protected signUp(): void {
+    this.auth.loginWithRedirect({
+      authorizationParams: { screen_hint: 'signup' },
+    });
   }
 
-  protected submit(): void {
-    this.submitted = true;
-    this.notice = '';
-
-    if (this.emailInvalid || this.passwordInvalid) return;
-
-    this.notice = 'Authentication is not connected. You have not been signed in.';
+  protected logout(): void {
+    this.auth.logout({
+      logoutParams: { returnTo: window.location.origin },
+    });
   }
 }

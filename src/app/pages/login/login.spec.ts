@@ -1,74 +1,35 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
+import { of } from 'rxjs';
 import { Login } from './login';
 
-async function setValue(
-  fixture: ComponentFixture<Login>,
-  name: string,
-  value: string,
-): Promise<void> {
-  const input = fixture.nativeElement.querySelector(`[name="${name}"]`) as HTMLInputElement;
-  input.value = value;
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  await fixture.whenStable();
-  fixture.detectChanges();
-}
-
-async function submit(fixture: ComponentFixture<Login>): Promise<void> {
-  fixture.nativeElement
-    .querySelector('form')
-    .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-  await fixture.whenStable();
-  fixture.detectChanges();
-}
-
 describe('Login', () => {
+  const auth = {
+    isLoading$: of(false),
+    isAuthenticated$: of(false),
+    user$: of(null),
+    error$: of(null),
+    loginWithRedirect: () => of(undefined),
+    logout: () => of(undefined),
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Login],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: auth },
+      ],
     }).compileComponents();
   });
 
-  it('shows required-field errors and no disconnected notice for an empty submit', async () => {
+  it('provides login and signup buttons through the Auth0 SDK', () => {
     const fixture = TestBed.createComponent(Login);
     fixture.detectChanges();
 
-    await submit(fixture);
-
-    expect(fixture.nativeElement.querySelector('#email-error')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('#password-error')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeNull();
-  });
-
-  it('rejects a malformed email address', async () => {
-    const fixture = TestBed.createComponent(Login);
-    fixture.detectChanges();
-
-    await setValue(fixture, 'email', 'not-an-email');
-    await setValue(fixture, 'password', 'example-password');
-    await submit(fixture);
-
-    expect(fixture.nativeElement.querySelector('#email-error')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('#password-error')).toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeNull();
-  });
-
-  it('shows a disconnected notice for valid input and links to registration', async () => {
-    const fixture = TestBed.createComponent(Login);
-    fixture.detectChanges();
-
-    await setValue(fixture, 'email', 'person@example.com');
-    await setValue(fixture, 'password', 'example-password');
-    await submit(fixture);
-
-    expect(fixture.nativeElement.querySelector('[role="status"]')?.textContent).toContain(
-      'Authentication is not connected',
-    );
-    expect(fixture.nativeElement.querySelector('app-shell')).toBeNull();
-    expect(
-      fixture.nativeElement.querySelector('a[routerLink="/register"]')?.getAttribute('href'),
-    ).toBe('/register');
+    expect(fixture.nativeElement.querySelector('[data-auth-login]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-auth-signup]')).toBeTruthy();
   });
 
   it('omits standalone account navigation when embedded', () => {
@@ -77,6 +38,5 @@ describe('Login', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('main')).toBeNull();
-    expect(fixture.nativeElement.querySelector('a[routerLink="/register"]')).toBeNull();
   });
 });
