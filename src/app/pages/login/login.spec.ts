@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { of } from 'rxjs';
 import { Login } from './login';
@@ -19,6 +19,10 @@ describe('Login', () => {
       imports: [Login],
       providers: [
         provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParamMap: { get: () => 'authenticated-user-required' } } },
+        },
         { provide: AuthService, useValue: auth },
       ],
     }).compileComponents();
@@ -30,6 +34,15 @@ describe('Login', () => {
 
     expect(fixture.nativeElement.querySelector('[data-auth-login]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[data-auth-signup]')).toBeTruthy();
+  });
+
+  it('shows an authentication warning when redirected from a protected page', () => {
+    const fixture = TestBed.createComponent(Login);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain(
+      'authenticated',
+    );
   });
 
   it('omits standalone account navigation when embedded', () => {

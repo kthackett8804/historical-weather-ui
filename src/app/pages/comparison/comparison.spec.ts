@@ -1,9 +1,40 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
+import { of } from 'rxjs';
 import { Comparison } from './comparison';
 
 describe('Comparison', () => {
+  it('shows a warning popup for unauthenticated users', () => {
+    TestBed.overrideProvider(AuthService, {
+      useValue: { isAuthenticated$: of(false), isLoading$: of(false) },
+    });
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { snapshot: { queryParamMap: { get: () => 'true' } } },
+    });
+    const fixture = TestBed.createComponent(Comparison);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alertdialog"]')?.textContent).toContain(
+      'authenticated user',
+    );
+  });
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [Comparison] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [Comparison],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParamMap: { get: () => null } } },
+        },
+        {
+          provide: AuthService,
+          useValue: { isAuthenticated$: of(true), isLoading$: of(false) },
+        },
+      ],
+    }).compileComponents();
   });
 
   it('explains that no weather records are selected for comparison', () => {

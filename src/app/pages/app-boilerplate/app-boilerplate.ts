@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
+import { TokenExpiration } from '../../components/token-expiration/token-expiration';
 
 @Component({
   selector: 'app-shell',
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, TokenExpiration],
   template: `
     <header>
       <a class="brand" routerLink="/" aria-label="Weather Atlas dashboard">☁ Weather Atlas</a>
@@ -32,6 +33,7 @@ import { AuthService } from '@auth0/auth0-angular';
         <span aria-hidden="true">{{ menuOpen ? '×' : '☰' }}</span>
       </button>
     </header>
+    <app-token-expiration />
     <div class="layout">
       <aside id="primary-navigation" [class.open]="menuOpen">
         <nav aria-label="Main navigation">
@@ -174,7 +176,7 @@ import { AuthService } from '@auth0/auth0-angular';
 export class AppShell {
   protected readonly auth = inject(AuthService);
   protected menuOpen = false;
-  protected readonly navLinks = [
+  private readonly allNavLinks = [
     { label: 'Dashboard', path: '/', exact: true },
     { label: 'Weather', path: '/weather', exact: false },
     { label: 'Analytics', path: '/analytics', exact: false },
@@ -184,6 +186,10 @@ export class AppShell {
     { label: 'My Account', path: '/account', exact: false },
     { label: 'Admin', path: '/admin/users', exact: false },
   ];
+
+  protected get navLinks(): typeof this.allNavLinks {
+    return this.allNavLinks;
+  }
 
   protected logout(): void {
     this.auth.logout({

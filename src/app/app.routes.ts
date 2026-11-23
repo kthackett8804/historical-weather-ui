@@ -16,6 +16,8 @@ import { Reviews } from './pages/reviews/reviews';
 import { WeatherDetails } from './pages/weather-details/weather-details';
 import { WeatherSearch } from './pages/weather-search/weather-search';
 import { Weather } from './pages/weather/weather';
+import { authGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -34,10 +36,10 @@ export const routes: Routes = [
       { path: 'analytics', component: Analytics },
       { path: 'reviews', component: Reviews },
       { path: 'account', component: Account },
-      { path: 'profile/:userId', component: Profile },
-      { path: 'favourites', component: Favourites },
-      { path: 'comparison', component: Comparison },
-      { path: 'admin/users', component: AdminUsers },
+      { path: 'profile/:userId', component: Profile, canActivate: [authGuard] },
+      { path: 'favourites', component: Favourites, canActivate: [authGuard] },
+      { path: 'comparison', component: Comparison, canActivate: [authGuard] },
+      { path: 'admin/users', component: AdminUsers, canActivate: [adminGuard] },
       { path: '**', component: NotFound },
     ],
   },

@@ -16,6 +16,8 @@ import { Profile } from './pages/profile/profile';
 import { AdminUsers } from './pages/admin-users/admin-users';
 import { Account } from './pages/account/account';
 import { Reviews } from './pages/reviews/reviews';
+import { authGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
 
 describe('routes', () => {
   const shellRoute = routes.find((route) => route.path === '');
@@ -57,6 +59,21 @@ describe('routes', () => {
     ).toBe(AstronomicalEvents);
     expect(paths.indexOf('weather/search')).toBeLessThan(weatherIdIndex);
     expect(paths.indexOf('weather/nearby')).toBeLessThan(weatherIdIndex);
+  });
+
+  it('protects account routes and restricts the admin route', () => {
+    expect(childRoutes.find((route) => route.path === 'profile/:userId')?.canActivate).toContain(
+      authGuard,
+    );
+    expect(childRoutes.find((route) => route.path === 'favourites')?.canActivate).toContain(
+      authGuard,
+    );
+    expect(childRoutes.find((route) => route.path === 'comparison')?.canActivate).toContain(
+      authGuard,
+    );
+    expect(childRoutes.find((route) => route.path === 'admin/users')?.canActivate).toContain(
+      adminGuard,
+    );
   });
 
   it('keeps the not-found route last inside AppShell', () => {
