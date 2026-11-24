@@ -19,6 +19,7 @@ describe('Favourites', () => {
     expect(fixture.nativeElement.querySelector('[role="alertdialog"]')?.textContent).toContain(
       'authenticated user',
     );
+    expect(fixture.nativeElement.querySelector('form')).toBeNull();
   });
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -44,6 +45,40 @@ describe('Favourites', () => {
     expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Favourites');
     expect(fixture.nativeElement.querySelector('[role="status"]')?.textContent).toContain(
       'No favourite locations have been saved',
+    );
+    expect(fixture.nativeElement.querySelector('#favourite-country')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#favourite-location')).not.toBeNull();
+  });
+
+  it('validates favourite fields locally without claiming they were saved', () => {
+    const fixture = TestBed.createComponent(Favourites);
+    fixture.detectChanges();
+
+    const country = fixture.nativeElement.querySelector('#favourite-country') as HTMLInputElement;
+    const location = fixture.nativeElement.querySelector('#favourite-location') as HTMLInputElement;
+    const preferred = fixture.nativeElement.querySelector('#favourite-preferred') as HTMLInputElement;
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+
+    expect(country.required).toBe(true);
+    expect(location.required).toBe(true);
+
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.form-feedback')?.textContent).toContain(
+      'Enter a country and location name',
+    );
+
+    country.value = 'Canada';
+    country.dispatchEvent(new Event('input', { bubbles: true }));
+    location.value = 'Vancouver';
+    location.dispatchEvent(new Event('input', { bubbles: true }));
+    preferred.checked = true;
+    preferred.dispatchEvent(new Event('change', { bubbles: true }));
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.form-feedback')?.textContent).toContain(
+      'Your favourite was not saved',
     );
   });
 });

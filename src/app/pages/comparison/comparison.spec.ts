@@ -19,6 +19,7 @@ describe('Comparison', () => {
     expect(fixture.nativeElement.querySelector('[role="alertdialog"]')?.textContent).toContain(
       'authenticated user',
     );
+    expect(fixture.nativeElement.querySelector('form')).toBeNull();
   });
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -55,5 +56,38 @@ describe('Comparison', () => {
 
     expect(button.disabled).toBe(true);
     expect(button.textContent).toContain('Compare selected records');
+  });
+
+  it('provides a locally validated form for a comparison area', () => {
+    const fixture = TestBed.createComponent(Comparison);
+    fixture.detectChanges();
+
+    const country = fixture.nativeElement.querySelector('#comparison-country') as HTMLInputElement;
+    const location = fixture.nativeElement.querySelector('#comparison-location') as HTMLInputElement;
+    const label = fixture.nativeElement.querySelector('#comparison-label') as HTMLInputElement;
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+
+    expect(country.required).toBe(true);
+    expect(location.required).toBe(true);
+    expect(label.required).toBe(true);
+
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.form-feedback')?.textContent).toContain(
+      'Enter a country, location name, and label',
+    );
+
+    country.value = 'Iceland';
+    country.dispatchEvent(new Event('input', { bubbles: true }));
+    location.value = 'Reykjavik';
+    location.dispatchEvent(new Event('input', { bubbles: true }));
+    label.value = 'Winter trip';
+    label.dispatchEvent(new Event('input', { bubbles: true }));
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.form-feedback')?.textContent).toContain(
+      'Your comparison area was not saved',
+    );
   });
 });
