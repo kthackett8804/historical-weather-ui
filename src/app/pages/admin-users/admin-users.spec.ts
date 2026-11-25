@@ -26,7 +26,7 @@ describe('AdminUsers', () => {
     }).compileComponents();
   });
 
-  it('loads user records from the admin API', () => {
+  it('loads user records from the admin endpoint', () => {
     const fixture = TestBed.createComponent(AdminUsers);
     fixture.detectChanges();
 
@@ -35,7 +35,7 @@ describe('AdminUsers', () => {
     expect(fixture.nativeElement.textContent).toContain('user@example.com');
   });
 
-  it('updates a user role through the admin API', () => {
+  it('updates a user role through the admin endpoint', () => {
     const fixture = TestBed.createComponent(AdminUsers);
     fixture.detectChanges();
 

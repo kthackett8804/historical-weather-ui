@@ -190,9 +190,6 @@ export interface WeatherReview {
   comment: string;
   rating: number;
   favourite_location: boolean;
-  weather_id?: string;
-  country?: string;
-  location_name?: string;
 }
 
 /** Full weather record returned by list and detail endpoints. */
@@ -329,13 +326,13 @@ export interface AstronomicalEventResponse {
 /** Request body for creating an astronomical event. */
 export interface CreateAstronomicalEventRequest {
   event: string;
-  time?: string | null;
+  time: string | null;
 }
 
 /** Request body for partially updating an astronomical event. */
 export interface UpdateAstronomicalEventRequest {
-  event?: string;
-  time?: string | null;
+  event: string;
+  time: string | null;
 }
 
 // Review Models

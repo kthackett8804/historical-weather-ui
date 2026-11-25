@@ -7,21 +7,25 @@ import { Login } from './login';
 
 describe('Login', () => {
   const auth = {
+
     isLoading$: of(false),
     isAuthenticated$: of(false),
     user$: of(null),
     error$: of(null),
+
     login: vi.fn(() => of({
       token: 'application-jwt',
       username: 'weather-user',
       user_id: 'user-id',
       role: 'user' as const,
     })),
+
     register: vi.fn(() => of({
       message: 'registered',
       user_id: 'user-id',
       role: 'user' as const,
     })),
+
     startAuth0Login: vi.fn(),
     startAuth0Signup: vi.fn(),
     logout: vi.fn(() => of({ message: 'Logged out' })),
@@ -32,6 +36,7 @@ describe('Login', () => {
     auth.register.mockClear();
     auth.startAuth0Login.mockClear();
     auth.startAuth0Signup.mockClear();
+    
     await TestBed.configureTestingModule({
       imports: [Login],
       providers: [

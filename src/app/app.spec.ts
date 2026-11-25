@@ -40,7 +40,7 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('renders routed pages without the Angular starter placeholder', async () => {
+  it('renders routed pages', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/weather/search');

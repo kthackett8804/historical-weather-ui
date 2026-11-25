@@ -23,7 +23,7 @@ describe('routes', () => {
   const shellRoute = routes.find((route) => route.path === '');
   const childRoutes = shellRoute?.children ?? [];
 
-  it('routes login and account through the app shell', () => {
+  it('general app routes to expected components', () => {
     expect(childRoutes.find((route) => route.path === 'login')?.component).toBe(Login);
     expect(childRoutes.find((route) => route.path === 'account')?.component).toBe(Account);
     expect(shellRoute?.component).toBe(AppShell);
@@ -37,7 +37,7 @@ describe('routes', () => {
     expect(childRoutes.find((route) => route.path === 'reviews')?.component).toBe(Reviews);
   });
 
-  it('preserves the implemented weather routes with static paths before the ID route', () => {
+  it('weather routes to expected components', () => {
     expect(childRoutes.find((route) => route.path === 'weather')?.component).toBe(Weather);
     expect(childRoutes.find((route) => route.path === 'weather/search')?.component).toBe(
       WeatherSearch,
