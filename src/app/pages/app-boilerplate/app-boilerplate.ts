@@ -19,7 +19,7 @@ import { ApiAuthService } from '../../services/api-auth.service';
         @if (auth.isAuthenticated$ | async) {
           <button type="button" class="auth-button" (click)="logout()">Log out</button>
         } @else {
-          <a class="auth-button" routerLink="/account">Log in</a>
+          <a class="auth-button" routerLink="/login">Log in</a>
         }
       }
       @if (auth.error$ | async; as error) {

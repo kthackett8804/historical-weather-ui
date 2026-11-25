@@ -20,7 +20,6 @@ import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
-  { path: 'login', component: Login },
   {
     path: '',
     component: AppShell,
@@ -35,6 +34,7 @@ export const routes: Routes = [
       { path: 'weather/:id', component: WeatherDetails },
       { path: 'analytics', component: Analytics },
       { path: 'reviews', component: Reviews },
+      { path: 'login', component: Login },
       { path: 'account', component: Account },
       { path: 'profile/:userId', component: Profile, canActivate: [authGuard] },
       { path: 'favourites', component: Favourites, canActivate: [authGuard] },

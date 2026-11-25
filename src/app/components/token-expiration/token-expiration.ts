@@ -46,7 +46,9 @@ export class TokenExpiration implements OnDestroy {
     this.auth.renewAuth0Session().subscribe({
       error: () => {
         this.auth.clearSession();
-        void this.router.navigate(['/login']);
+        void this.router.navigate(['/login'], {
+          queryParams: { authRequired: 'true' },
+        });
       },
     });
   }

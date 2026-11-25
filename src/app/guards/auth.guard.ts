@@ -26,7 +26,9 @@ export const authGuard: CanActivateFn = (route, state) => {
           queryParams: { authRequired: 'true' },
         });
       }
-      void router.navigate(['/login']);
+      void router.navigate(['/login'], {
+        queryParams: { authRequired: 'true' },
+      });
       return false;
     }),
   );

@@ -1,123 +1,84 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Component, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiAuthService } from '../../services/api-auth.service';
 import { ValidationService } from '../../services/validation.service';
 
 @Component({
   selector: 'app-login',
-  imports: [CommonModule, RouterLink],
-  host: {
-    '[class.embedded]': 'embedded',
-  },
+  imports: [CommonModule],
   template: `
-    <div class="page" [attr.role]="embedded ? null : 'main'">
-      <section aria-labelledby="login-title">
-        @if (!embedded) {
-          <a class="brand" routerLink="/" aria-label="Weather Atlas home">☁</a>
+    <section aria-labelledby="login-title">
+      <h1 id="login-title">Sign in or create an account</h1>
+      @if (showWarning) {
+        <p role="alert">Sign in to continue to the requested page.</p>
+      }
+      @if (registrationComplete()) {
+        <p role="status">Account created. You can now sign in.</p>
+      }
+      @if (auth.isLoading$ | async) {
+        <p role="status">Loading authentication...</p>
+      } @else if ((auth.isAuthenticated$ | async) && (auth.user$ | async); as user) {
+        <p>Logged in as {{ user.email }}</p>
+        <button type="button" (click)="logout()">Logout</button>
+      } @else {
+        @if (auth.error$ | async; as error) {
+          <p class="error" role="alert">{{ error }}</p>
         }
-        <h1 id="login-title">Weather Atlas</h1>
-        @if (showWarning) {
-          <p role="alert">Sign in to continue to the requested page.</p>
-        }
-        @if (registrationComplete()) {
-          <p role="status">Account created. You can now sign in.</p>
-        }
-        @if (auth.isLoading$ | async) {
-          <p role="status">Loading authentication...</p>
-        } @else if ((auth.isAuthenticated$ | async) && (auth.user$ | async); as user) {
-          <p>Logged in as {{ user.email }}</p>
-          <button type="button" (click)="logout()">Logout</button>
+        @if (isCreatingAccount()) {
+          <p>Create an email/password account</p>
+          <form (submit)="register($event)">
+            <label for="register-username">Username</label>
+            <input id="register-username" type="text" autocomplete="username" required
+              [value]="username" (input)="onUsernameInput($event)" />
+            <label for="register-email">Email</label>
+            <input id="register-email" type="email" autocomplete="email" required
+              [value]="email" (input)="onEmailInput($event)" />
+            <label for="register-password">Password</label>
+            <input id="register-password" type="password" autocomplete="new-password" required
+              [value]="password" (input)="onPasswordInput($event)" />
+            <button type="submit" [disabled]="isSubmitting()">Create account</button>
+            @if (feedback()) {
+              <p class="error" role="alert">{{ feedback() }}</p>
+            }
+          </form>
+          <button type="button" data-show-login (click)="showLogin()">Back to sign in</button>
         } @else {
-          @if (auth.error$ | async; as error) {
-            <p class="error" role="alert">{{ error }}</p>
-          }
-          @if (isCreatingAccount()) {
-            <p>Create an email/password account</p>
-            <form (submit)="register($event)">
-              <label for="register-username">Username</label>
-              <input id="register-username" type="text" autocomplete="username" required
-                [value]="username" (input)="onUsernameInput($event)" />
-              <label for="register-email">Email</label>
-              <input id="register-email" type="email" autocomplete="email" required
-                [value]="email" (input)="onEmailInput($event)" />
-              <label for="register-password">Password</label>
-              <input id="register-password" type="password" autocomplete="new-password" required
-                [value]="password" (input)="onPasswordInput($event)" />
-              <button type="submit" [disabled]="isSubmitting()">Create account</button>
-              @if (feedback()) {
-                <p class="error" role="alert">{{ feedback() }}</p>
-              }
-            </form>
-            <button type="button" data-show-login (click)="showLogin()">Back to sign in</button>
-          } @else {
-            <p>Welcome back</p>
-            <form (submit)="login($event)">
-              <label for="username">Username</label>
-              <input id="username" type="text" autocomplete="username" required
-                [value]="username" (input)="onUsernameInput($event)" />
-              <label for="password">Password</label>
-              <input id="password" type="password" autocomplete="current-password" required
-                [value]="password" (input)="onPasswordInput($event)" />
-              <button type="submit" [disabled]="isSubmitting()">Log in with email</button>
-              @if (feedback()) {
-                <p class="error" role="alert">{{ feedback() }}</p>
-              }
-            </form>
-            <button data-auth-login type="button" (click)="loginWithAuth0()">
-              Log in with Auth0
-            </button>
-            <button data-auth-signup type="button" (click)="signUpWithAuth0()">
-              Sign up with Auth0
-            </button>
-            <button data-show-register type="button" (click)="showRegistration()">
-              Create an email/password account
-            </button>
-          }
+          <p>Welcome back</p>
+          <form (submit)="login($event)">
+            <label for="username">Username</label>
+            <input id="username" type="text" autocomplete="username" required
+              [value]="username" (input)="onUsernameInput($event)" />
+            <label for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" required
+              [value]="password" (input)="onPasswordInput($event)" />
+            <button type="submit" [disabled]="isSubmitting()">Log in with email</button>
+            @if (feedback()) {
+              <p class="error" role="alert">{{ feedback() }}</p>
+            }
+          </form>
+          <button data-auth-login type="button" (click)="loginWithAuth0()">
+            Log in with Auth0
+          </button>
+          <button data-auth-signup type="button" (click)="signUpWithAuth0()">
+            Sign up with Auth0
+          </button>
+          <button data-show-register type="button" (click)="showRegistration()">
+            Create an email/password account
+          </button>
         }
-      </section>
-    </div>
+      }
+    </section>
   `,
   styles: `
-    :host {
-      display: block;
-      min-height: 100vh;
-      background: #edf3fc;
-      color: #172b46;
-      font-family: Arial, sans-serif;
-    }
-    :host(.embedded) {
-      min-height: 0;
-      background: transparent;
-      color: #172b46;
-      font-family: inherit;
-    }
-    .page {
-      display: grid;
-      min-height: 100vh;
-      place-items: center;
-      padding: 1rem;
-    }
-    :host(.embedded) .page {
-      min-height: 0;
-      padding: 0;
-    }
+    :host { display: block; }
     section {
       width: min(100%, 22rem);
-      padding: 2rem;
-      border: 1px solid #d7e0ed;
-      border-radius: 0.5rem;
-      background: white;
+      color: #172b46;
       text-align: center;
     }
-    .brand {
-      color: #1d67c8;
-      font-size: 2.5rem;
-      text-decoration: none;
-    }
     h1 {
-      margin: 0.25rem 0;
-      font-size: 1.5rem;
+      margin: 0 0 1rem;
     }
     section > p {
       color: #475b73;
@@ -138,8 +99,7 @@ import { ValidationService } from '../../services/validation.service';
       padding: 0.5rem 0.75rem;
       font: inherit;
     }
-    button:focus-visible,
-    a:focus-visible {
+    button:focus-visible {
       outline: 3px solid #1d67c8;
       outline-offset: 2px;
     }
@@ -165,7 +125,6 @@ import { ValidationService } from '../../services/validation.service';
   `,
 })
 export class Login {
-  @Input() embedded = false;
   protected readonly auth = inject(ApiAuthService);
   private readonly validation = inject(ValidationService);
   private readonly router = inject(Router);

@@ -52,7 +52,7 @@ describe('App', () => {
     expect(compiled.textContent).not.toContain('Hello, historical-weather-ui');
   });
 
-  it('opens the Auth0 login and signup controls from My Account', async () => {
+  it('shows a sign-in button on the account page', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/account');
@@ -62,11 +62,24 @@ describe('App', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('app-shell main h1')?.textContent).toContain('My Account');
-    expect(
-      compiled.querySelector('nav[aria-label="Main navigation"] a[aria-current="page"]')
-        ?.textContent,
-    ).toContain('My Account');
-    expect(compiled.querySelector('[data-auth-login]')).toBeTruthy();
-    expect(compiled.querySelector('[data-auth-signup]')).toBeTruthy();
+    const signInButton = compiled.querySelector('app-shell main button[data-login]') as HTMLButtonElement;
+    expect(signInButton?.textContent).toContain('Sign in');
+
+    signInButton.click();
+    await fixture.whenStable();
+    expect(router.url).toBe('/login');
+  });
+
+  it('shows the authentication controls on the login page', async () => {
+    const fixture = TestBed.createComponent(App);
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/login');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(router.url).toBe('/login');
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-auth-login]')).toBeTruthy();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-auth-signup]')).toBeTruthy();
   });
 });
