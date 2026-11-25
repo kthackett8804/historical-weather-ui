@@ -49,12 +49,18 @@ export interface LoginRequest {
   password: string;
 }
 
+/** Request body for exchanging a verified Auth0 ID token for an API JWT. */
+export interface Auth0LoginRequest {
+  id_token: string;
+}
+
 /** Response returned after successful login. */
 export interface LoginResponse {
   token: string;
   username: string;
   user_id: string;
   role: UserRole;
+  email?: string;
 }
 
 /** Roles supported by the API. */
@@ -115,7 +121,7 @@ export interface UpdateUserRoleRequest {
 export interface CreateFavouriteRequest {
   country: string;
   location_name: string;
-  preferred?: boolean;
+  preferred: boolean;
 }
 
 /** Request body for partially updating a favourite location. */
@@ -184,6 +190,9 @@ export interface WeatherReview {
   comment: string;
   rating: number;
   favourite_location: boolean;
+  weather_id?: string;
+  country?: string;
+  location_name?: string;
 }
 
 /** Full weather record returned by list and detail endpoints. */
@@ -295,14 +304,14 @@ export interface AirQualityReadingResponse {
 
 /** Request body for creating an air-quality reading. */
 export interface CreateAirQualityReadingRequest {
-  type: string;
+  type: 'pollutant' | 'index';
   name: string;
   value: number;
 }
 
 /** Request body for partially updating an air-quality reading. */
 export interface UpdateAirQualityReadingRequest {
-  type?: string;
+  type?: 'pollutant' | 'index';
   name?: string;
   value?: number;
 }
@@ -320,14 +329,13 @@ export interface AstronomicalEventResponse {
 /** Request body for creating an astronomical event. */
 export interface CreateAstronomicalEventRequest {
   event: string;
-  time: string | null;
+  time?: string | null;
 }
 
 /** Request body for partially updating an astronomical event. */
 export interface UpdateAstronomicalEventRequest {
   event?: string;
   time?: string | null;
-  occurs?: boolean | null;
 }
 
 // Review Models

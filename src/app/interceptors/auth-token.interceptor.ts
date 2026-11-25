@@ -5,42 +5,41 @@ import {
   HttpHandler,
   HttpEvent,
 } from '@angular/common/http';
-import { Observable, switchMap, take } from 'rxjs';
-import { AuthService } from '@auth0/auth0-angular';
+import { Observable } from 'rxjs';
+import { ApiTokenStore } from '../services/api-token.store';
 
 @Injectable()
 export class AuthTokenInterceptor implements HttpInterceptor {
-  private readonly auth = inject(AuthService);
+  private readonly tokenStore = inject(ApiTokenStore);
 
   intercept(req: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    if (req.headers.has('Authorization') || !this.isProtectedRequest(req.url)) {
+    if (req.headers.has('Authorization') || !this.isProtectedApiRequest(req.url)) {
       return next.handle(req);
     }
 
-    return this.auth.isAuthenticated$.pipe(
-      take(1),
-      switchMap((authenticated) =>
-        authenticated
-          ? this.auth.getAccessTokenSilently().pipe(
-              switchMap((token) =>
-                next.handle(
-                  token
-                    ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
-                    : req,
-                ),
-              ),
-            )
-          : next.handle(req),
-      ),
+    const token = this.tokenStore.currentToken;
+    return next.handle(
+      token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req,
     );
   }
 
-  private isProtectedRequest(url: string): boolean {
-    if (url.startsWith('/api/') || url.includes('/api/')) {
-      return true;
-    }
+  private isProtectedApiRequest(url: string): boolean {
+    const path = url.split('?')[0];
+    if (!path) return false;
+
+    const isApiRequest = path.startsWith('/api/')
+      ? true
+      : this.isSameOriginApiRequest(url);
+    if (!isApiRequest) return false;
+
+    return !/\/api\/v\d+(?:\.\d+)*\/(?:registration|login|auth0-login)\/?$/.test(path);
+  }
+
+  private isSameOriginApiRequest(url: string): boolean {
+    if (typeof window === 'undefined') return false;
     try {
-      return new URL(url, window.location.origin).origin === window.location.origin;
+      const requestUrl = new URL(url, window.location.origin);
+      return requestUrl.origin === window.location.origin && requestUrl.pathname.startsWith('/api/');
     } catch {
       return false;
     }

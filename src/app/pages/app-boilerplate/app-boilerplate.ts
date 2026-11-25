@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { AuthService } from '@auth0/auth0-angular';
 import { TokenExpiration } from '../../components/token-expiration/token-expiration';
+import { ApiAuthService } from '../../services/api-auth.service';
 
 @Component({
   selector: 'app-shell',
@@ -21,6 +21,9 @@ import { TokenExpiration } from '../../components/token-expiration/token-expirat
         } @else {
           <a class="auth-button" routerLink="/account">Log in</a>
         }
+      }
+      @if (auth.error$ | async; as error) {
+        <p role="alert">{{ error }}</p>
       }
       <button
         class="menu-toggle"
@@ -174,7 +177,7 @@ import { TokenExpiration } from '../../components/token-expiration/token-expirat
   `,
 })
 export class AppShell {
-  protected readonly auth = inject(AuthService);
+  protected readonly auth = inject(ApiAuthService);
   protected menuOpen = false;
   private readonly allNavLinks = [
     { label: 'Dashboard', path: '/', exact: true },
@@ -192,8 +195,6 @@ export class AppShell {
   }
 
   protected logout(): void {
-    this.auth.logout({
-      logoutParams: { returnTo: window.location.origin },
-    });
+    this.auth.logout().subscribe({ error: () => undefined });
   }
 }

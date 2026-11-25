@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/router';
 import { of } from 'rxjs';
-import { AppAuthService } from '../services/app-auth.service';
+import { ApiAuthService } from '../services/api-auth.service';
 import { adminGuard } from './admin.guard';
 
 describe('adminGuard', () => {
@@ -10,10 +10,10 @@ describe('adminGuard', () => {
       loading$: of(false),
       isAuthenticated: true,
       user: { role: 'admin' },
-    } as unknown as AppAuthService;
+    } as unknown as ApiAuthService;
     TestBed.configureTestingModule({
       providers: [
-        { provide: AppAuthService, useValue: auth },
+        { provide: ApiAuthService, useValue: auth },
         { provide: Router, useValue: { navigate: () => Promise.resolve(true) } },
       ],
     });
@@ -32,10 +32,10 @@ describe('adminGuard', () => {
       loading$: of(false),
       isAuthenticated: true,
       user: { role: 'user' },
-    } as unknown as AppAuthService;
+    } as unknown as ApiAuthService;
     TestBed.configureTestingModule({
       providers: [
-        { provide: AppAuthService, useValue: auth },
+        { provide: ApiAuthService, useValue: auth },
         { provide: Router, useValue: { navigate } },
       ],
     });

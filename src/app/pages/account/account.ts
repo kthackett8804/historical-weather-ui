@@ -10,8 +10,8 @@ import { Login } from '../login/login';
       <header class="page-heading">
         <p class="eyebrow">WEATHER ATLAS</p>
         <h1 id="account-title">My Account</h1>
-        <p>Sign in or create an account through Auth0.</p>
-        <a class="profile-link" routerLink="/profile/me">View profile preview</a>
+        <p>Sign in with email/password or Auth0, or create an account.</p>
+        <a class="profile-link" routerLink="/profile/me">View profile</a>
       </header>
 
       <div class="account-panel">

@@ -23,8 +23,9 @@ describe('routes', () => {
   const shellRoute = routes.find((route) => route.path === '');
   const childRoutes = shellRoute?.children ?? [];
 
-  it('keeps authentication pages standalone and places storyboard pages in AppShell', () => {
+  it('keeps login standalone and places account pages in AppShell', () => {
     expect(routes.find((route) => route.path === 'login')?.component).toBe(Login);
+    expect(routes.find((route) => route.path === 'register')).toBeUndefined();
     expect(shellRoute?.component).toBe(AppShell);
     expect(childRoutes.find((route) => route.path === '')?.component).toBe(Home);
     expect(childRoutes.find((route) => route.path === 'dashboard')?.component).toBe(Home);

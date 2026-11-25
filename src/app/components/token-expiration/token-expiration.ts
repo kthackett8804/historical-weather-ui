@@ -1,6 +1,8 @@
 import { Component, OnDestroy, inject, signal } from '@angular/core';
-import { AuthService } from '@auth0/auth0-angular';
-import { of, Subscription } from 'rxjs';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { ApiAuthService } from '../../services/api-auth.service';
+import { TokenExpirationService } from '../../services/token-expiration.service';
 
 @Component({
   selector: 'app-token-expiration',
@@ -18,19 +20,20 @@ import { of, Subscription } from 'rxjs';
   `,
 })
 export class TokenExpiration implements OnDestroy {
-  protected readonly auth = inject(AuthService);
+  protected readonly auth = inject(ApiAuthService);
+  private readonly router = inject(Router);
+  private readonly expiration = inject(TokenExpirationService);
   private readonly subscription: Subscription;
-  private expiresAt = 0;
   private intervalId: ReturnType<typeof setInterval> | undefined;
   protected readonly minutesRemaining = signal(999);
 
   constructor() {
-    this.subscription = (this.auth.idTokenClaims$ ?? of(null)).subscribe((claims) => {
-      this.expiresAt = claims?.exp ? claims.exp * 1000 : 0;
-      this.minutesRemaining.set(this.remainingMinutes());
+    this.subscription = this.auth.session$.subscribe((session) => {
+      this.expiration.setToken(session?.token ?? null);
+      this.minutesRemaining.set(this.expiration.getMinutesRemaining());
     });
     this.intervalId = setInterval(() => {
-      this.minutesRemaining.set(this.remainingMinutes());
+      this.minutesRemaining.set(this.expiration.getMinutesRemaining());
     }, 30_000);
   }
 
@@ -40,13 +43,11 @@ export class TokenExpiration implements OnDestroy {
   }
 
   protected renew(): void {
-    this.auth.getAccessTokenSilently().subscribe({
-      error: () => this.auth.loginWithRedirect(),
+    this.auth.renewAuth0Session().subscribe({
+      error: () => {
+        this.auth.clearSession();
+        void this.router.navigate(['/login']);
+      },
     });
-  }
-
-  private remainingMinutes(): number {
-    if (!this.expiresAt) return 999;
-    return Math.max(-1, Math.ceil((this.expiresAt - Date.now()) / 60_000));
   }
 }

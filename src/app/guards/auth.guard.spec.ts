@@ -1,15 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/router';
 import { of } from 'rxjs';
-import { AppAuthService } from '../services/app-auth.service';
+import { ApiAuthService } from '../services/api-auth.service';
 import { authGuard } from './auth.guard';
 
 describe('authGuard', () => {
   it('allows an authenticated user', () => {
-    const auth = { loading$: of(false), isAuthenticated: true } as AppAuthService;
+    const auth = { loading$: of(false), isAuthenticated: true } as ApiAuthService;
     TestBed.configureTestingModule({
       providers: [
-        { provide: AppAuthService, useValue: auth },
+        { provide: ApiAuthService, useValue: auth },
         { provide: Router, useValue: { navigate: () => Promise.resolve(true) } },
       ],
     });
@@ -23,11 +23,11 @@ describe('authGuard', () => {
   });
 
   it('redirects unauthenticated favourites to login with a warning', () => {
-    const auth = { loading$: of(false), isAuthenticated: false } as AppAuthService;
+    const auth = { loading$: of(false), isAuthenticated: false } as ApiAuthService;
     const navigate = vi.fn(() => Promise.resolve(true));
     TestBed.configureTestingModule({
       providers: [
-        { provide: AppAuthService, useValue: auth },
+        { provide: ApiAuthService, useValue: auth },
         { provide: Router, useValue: { navigate } },
       ],
     });
@@ -49,10 +49,10 @@ describe('authGuard', () => {
 
   it('redirects an unauthenticated user to login', async () => {
     const navigate = vi.fn(() => Promise.resolve(true));
-    const auth = { loading$: of(false), isAuthenticated: false } as AppAuthService;
+    const auth = { loading$: of(false), isAuthenticated: false } as ApiAuthService;
     TestBed.configureTestingModule({
       providers: [
-        { provide: AppAuthService, useValue: auth },
+        { provide: ApiAuthService, useValue: auth },
         { provide: Router, useValue: { navigate } },
       ],
     });

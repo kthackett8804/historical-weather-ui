@@ -1,8 +1,11 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { AuthService } from '@auth0/auth0-angular';
+import { ApiAuthService } from '../../services/api-auth.service';
+import { ApiService } from '../../services/api.service';
+import type { FavouriteLocation } from '../../models';
 
 @Component({
   selector: 'app-favourites',
@@ -13,10 +16,23 @@ import { AuthService } from '@auth0/auth0-angular';
       @if (auth.isLoading$ | async) {
         <p role="status">Loading authentication...</p>
       } @else if (auth.isAuthenticated$ | async) {
-        <p role="status">No favourite locations have been saved.</p>
+        @if (loading()) {
+          <p role="status">Loading favourite locations...</p>
+        } @else if (error()) {
+          <p role="alert">{{ error() }}</p>
+        } @else if (favourites().length) {
+          <ul aria-label="Saved favourite locations">
+            @for (favourite of favourites(); track favourite._id) {
+              <li>{{ favourite.location_name }}, {{ favourite.country }}
+                @if (favourite.preferred) { <span> · Preferred</span> }
+              </li>
+            }
+          </ul>
+        } @else {
+          <p role="status">No favourite locations have been saved.</p>
+        }
         <section aria-labelledby="favourite-form-title">
           <h2 id="favourite-form-title">Add or update a favourite location</h2>
-          <p>Changes are only previewed here and will not be saved.</p>
           <form (ngSubmit)="submitFavourite()">
             <label for="favourite-country">Country</label>
             <input
@@ -50,7 +66,7 @@ import { AuthService } from '@auth0/auth0-angular';
             </label>
 
             <button type="submit">Save favourite</button>
-            <p class="form-feedback" role="status" aria-live="polite">{{ feedback }}</p>
+            <p class="form-feedback" role="status" aria-live="polite">{{ feedback() }}</p>
           </form>
         </section>
       } @else if (showWarning) {
@@ -86,13 +102,34 @@ import { AuthService } from '@auth0/auth0-angular';
     .login-link { color: white; background: #1d67c8; }
   `,
 })
-export class Favourites {
-  protected readonly auth = inject(AuthService);
+export class Favourites implements OnInit {
+  protected readonly auth = inject(ApiAuthService);
+  private readonly api = inject(ApiService);
   protected showWarning = inject(ActivatedRoute).snapshot.queryParamMap.get('authRequired') === 'true';
+  protected favourites = signal<FavouriteLocation[]>([]);
+  protected loading = signal(false);
+  protected error = signal('');
   protected country = '';
   protected locationName = '';
   protected preferred = false;
-  protected feedback = '';
+  protected feedback = signal('');
+
+  ngOnInit(): void {
+    const userId = this.auth.currentSession?.user_id;
+    if (!userId) return;
+
+    this.loading.set(true);
+    this.api.getFavourites(userId).subscribe({
+      next: (response) => {
+        this.favourites.set(response.favourites);
+        this.loading.set(false);
+      },
+      error: (error: unknown) => {
+        this.error.set(this.errorMessage(error, 'Unable to load favourite locations.'));
+        this.loading.set(false);
+      },
+    });
+  }
 
   protected onCountryInput(event: Event): void {
     this.country = (event.target as HTMLInputElement).value;
@@ -108,10 +145,35 @@ export class Favourites {
 
   protected submitFavourite(): void {
     if (!this.country.trim() || !this.locationName.trim()) {
-      this.feedback = 'Enter a country and location name to continue.';
+      this.feedback.set('Enter a country and location name to continue.');
       return;
     }
 
-    this.feedback = 'Favourites are not connected in this preview. Your favourite was not saved.';
+    const userId = this.auth.currentSession?.user_id;
+    if (!userId) {
+      this.feedback.set('Sign in again before saving a favourite location.');
+      return;
+    }
+
+    this.feedback.set('');
+    this.api.createFavourite(userId, {
+      country: this.country.trim(),
+      location_name: this.locationName.trim(),
+      preferred: this.preferred,
+    }).subscribe({
+      next: (response) => {
+        this.favourites.update((favourites) => [...favourites, response.location]);
+        this.feedback.set('Favourite location saved.');
+      },
+      error: (error: unknown) => {
+        this.feedback.set(this.errorMessage(error, 'Unable to save this favourite location.'));
+      },
+    });
+  }
+
+  private errorMessage(error: unknown, fallback: string): string {
+    return error instanceof HttpErrorResponse
+      ? error.error?.message ?? fallback
+      : fallback;
   }
 }

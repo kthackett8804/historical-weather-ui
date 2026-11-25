@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { AuthService } from '@auth0/auth0-angular';
 import { of } from 'rxjs';
 import { App } from './app';
 import { routes } from './app.routes';
+import { ApiAuthService } from './services/api-auth.service';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -12,14 +12,21 @@ describe('App', () => {
       providers: [
         provideRouter(routes),
         {
-          provide: AuthService,
+          provide: ApiAuthService,
           useValue: {
             isLoading$: of(false),
             isAuthenticated$: of(false),
             user$: of(null),
             error$: of(null),
-            loginWithRedirect: () => of(undefined),
-            logout: () => of(undefined),
+            login: () => of({
+              token: 'application-jwt',
+              username: 'weather-user',
+              user_id: 'user-id',
+              role: 'user' as const,
+            }),
+            startAuth0Login: () => undefined,
+            startAuth0Signup: () => undefined,
+            logout: () => of({ message: 'Logged out' }),
           },
         },
       ],

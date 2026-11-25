@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SAMPLE_WEATHER } from '../../weather-samples';
+import type { WeatherRecord } from '../../models';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-weather',
@@ -8,9 +10,17 @@ import { SAMPLE_WEATHER } from '../../weather-samples';
   template: `
     <section aria-labelledby="weather-title">
       <h1 id="weather-title">Weather Explorer</h1>
-      <p role="status">Showing sample weather records. Select a record for details.</p>
+      <p role="status" aria-live="polite">
+        @if (loading()) {
+          Loading weather records...
+        } @else if (error()) {
+          {{ error() }}
+        } @else {
+          {{ totalCount() }} weather record{{ totalCount() === 1 ? '' : 's' }} found.
+        }
+      </p>
       <form aria-label="Weather filters" (submit)="applyFilters($event)">
-        <label for="location">Search by country or location</label>
+        <label for="location">Search by location</label>
         <input
           id="location"
           type="search"
@@ -18,12 +28,12 @@ import { SAMPLE_WEATHER } from '../../weather-samples';
           (input)="onLocationInput($event)"
         />
         <label for="country">Country</label>
-        <select id="country" [value]="selectedCountry" (change)="onCountryChange($event)">
-          <option value="">All countries</option>
-          @for (country of countries; track country) {
-            <option [value]="country">{{ country }}</option>
-          }
-        </select>
+        <input
+          id="country"
+          type="text"
+          [value]="selectedCountry"
+          (input)="onCountryInput($event)"
+        />
         <label for="sort">Sort by date</label>
         <select id="sort" [value]="selectedSort" (change)="onSortChange($event)">
           <option value="newest">Newest first</option>
@@ -33,22 +43,21 @@ import { SAMPLE_WEATHER } from '../../weather-samples';
       </form>
       <section aria-labelledby="results-title" class="results">
         <h2 id="results-title">Weather records</h2>
-        <p>{{ filteredWeatherRecords.length }} sample records found.</p>
-        @if (filteredWeatherRecords.length) {
+        @if (weatherRecords().length) {
           <ul>
-            @for (record of filteredWeatherRecords; track record.id) {
+            @for (record of weatherRecords(); track record._id) {
               <li>
-                <a [routerLink]="['/weather', record.id]">
-                  <h3>{{ record.location }}, {{ record.country }}</h3>
-                  <p>{{ record.date }} · {{ record.condition }}</p>
-                  <p>{{ record.temperatureC }}°C · {{ record.precipitationMm }} mm precipitation</p>
+                <a [routerLink]="['/weather', record._id]">
+                  <h3>{{ record.location_name }}, {{ record.country }}</h3>
+                  <p>{{ record.last_updated }} · {{ record.condition_text }}</p>
+                  <p>{{ record.temperature_celsius }}°C · {{ record.precip_mm }} mm precipitation</p>
                   <span>View weather details</span>
                 </a>
               </li>
             }
           </ul>
         } @else {
-          <p>No sample weather records match these filters.</p>
+          <p>No weather records match these filters.</p>
         }
       </section>
     </section>
@@ -103,39 +112,55 @@ import { SAMPLE_WEATHER } from '../../weather-samples';
     }
   `,
 })
-export class Weather {
-  protected readonly countries = [
-    ...new Set(SAMPLE_WEATHER.map((record) => record.country)),
-  ].sort();
+export class Weather implements OnInit {
+  private readonly api = inject(ApiService);
+  protected weatherRecords = signal<WeatherRecord[]>([]);
+  protected totalCount = signal(0);
+  protected loading = signal(false);
+  protected error = signal('');
   protected locationQuery = '';
   protected selectedCountry = '';
   protected selectedSort: 'newest' | 'oldest' = 'newest';
-  private appliedLocation = '';
-  private appliedCountry = '';
-  private appliedSort: 'newest' | 'oldest' = 'newest';
 
-  protected get filteredWeatherRecords() {
-    const query = this.appliedLocation.trim().toLocaleLowerCase();
-    const records = SAMPLE_WEATHER.filter((record) => {
-      const matchesQuery =
-        !query || `${record.location} ${record.country}`.toLocaleLowerCase().includes(query);
-      const matchesCountry = !this.appliedCountry || record.country === this.appliedCountry;
-      return matchesQuery && matchesCountry;
-    });
+  ngOnInit(): void {
+    this.loadRecords();
+  }
 
-    return records.sort((first, second) =>
-      this.appliedSort === 'newest'
-        ? second.date.localeCompare(first.date)
-        : first.date.localeCompare(second.date),
-    );
+  private loadRecords(): void {
+    this.loading.set(true);
+    this.error.set('');
+    this.api
+      .getWeatherRecords({
+        page: 1,
+        per_page: 20,
+        location_name: this.locationQuery.trim() || undefined,
+        country: this.selectedCountry || undefined,
+        sort_by: 'date',
+        order: this.selectedSort === 'newest' ? 'desc' : 'asc',
+      })
+      .subscribe({
+        next: (response) => {
+          this.weatherRecords.set(response.data);
+          this.totalCount.set(response.total_count);
+          this.loading.set(false);
+        },
+        error: (error: unknown) => {
+          this.error.set(
+            error instanceof HttpErrorResponse
+              ? error.error?.message ?? 'Unable to load weather records.'
+              : 'Unable to load weather records.',
+          );
+          this.loading.set(false);
+        },
+      });
   }
 
   protected onLocationInput(event: Event): void {
     this.locationQuery = (event.target as HTMLInputElement).value;
   }
 
-  protected onCountryChange(event: Event): void {
-    this.selectedCountry = (event.target as HTMLSelectElement).value;
+  protected onCountryInput(event: Event): void {
+    this.selectedCountry = (event.target as HTMLInputElement).value;
   }
 
   protected onSortChange(event: Event): void {
@@ -145,8 +170,6 @@ export class Weather {
 
   protected applyFilters(event: Event): void {
     event.preventDefault();
-    this.appliedLocation = this.locationQuery;
-    this.appliedCountry = this.selectedCountry;
-    this.appliedSort = this.selectedSort;
+    this.loadRecords();
   }
 }

@@ -1,14 +1,34 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
-import { AuthService } from '@auth0/auth0-angular';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
+import { ApiAuthService } from '../../services/api-auth.service';
+import { ApiService } from '../../services/api.service';
 import { Favourites } from './favourites';
 
 describe('Favourites', () => {
+  const savedFavourite = {
+    _id: 'favourite-1',
+    country: 'Canada',
+    location_name: 'Vancouver',
+    preferred: true,
+  };
+  let apiServiceSpy: {
+    getFavourites: ReturnType<typeof vi.fn>;
+    createFavourite: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    apiServiceSpy = {
+      getFavourites: vi.fn().mockReturnValue(of({ favourites: [] })),
+      createFavourite: vi.fn().mockReturnValue(of({ location: savedFavourite })),
+    };
+  });
+
   it('shows a warning popup for unauthenticated users', () => {
-    TestBed.overrideProvider(AuthService, {
-      useValue: { isAuthenticated$: of(false), isLoading$: of(false) },
+    TestBed.overrideProvider(ApiAuthService, {
+      useValue: { isAuthenticated$: of(false), isLoading$: of(false), currentSession: null },
     });
     TestBed.overrideProvider(ActivatedRoute, {
       useValue: { snapshot: { queryParamMap: { get: () => 'true' } } },
@@ -31,26 +51,31 @@ describe('Favourites', () => {
           useValue: { snapshot: { queryParamMap: { get: () => null } } },
         },
         {
-          provide: AuthService,
-          useValue: { isAuthenticated$: of(true), isLoading$: of(false) },
+          provide: ApiAuthService,
+          useValue: {
+            isAuthenticated$: of(true),
+            isLoading$: of(false),
+            currentSession: { user_id: 'user-1' },
+          },
         },
+        { provide: ApiService, useValue: apiServiceSpy },
       ],
     }).compileComponents();
   });
 
-  it('explains that no favourite locations have been saved', () => {
+  it('loads and displays the authenticated user’s favourite locations', () => {
+    apiServiceSpy.getFavourites.mockReturnValue(of({ favourites: [savedFavourite] }));
     const fixture = TestBed.createComponent(Favourites);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Favourites');
-    expect(fixture.nativeElement.querySelector('[role="status"]')?.textContent).toContain(
-      'No favourite locations have been saved',
-    );
+    expect(apiServiceSpy.getFavourites).toHaveBeenCalledWith('user-1');
+    expect(fixture.nativeElement.textContent).toContain('Vancouver, Canada');
     expect(fixture.nativeElement.querySelector('#favourite-country')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#favourite-location')).not.toBeNull();
   });
 
-  it('validates favourite fields locally without claiming they were saved', () => {
+  it('validates required fields and saves a favourite through the API', () => {
     const fixture = TestBed.createComponent(Favourites);
     fixture.detectChanges();
 
@@ -77,8 +102,14 @@ describe('Favourites', () => {
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     fixture.detectChanges();
 
+    expect(apiServiceSpy.createFavourite).toHaveBeenCalledWith('user-1', {
+      country: 'Canada',
+      location_name: 'Vancouver',
+      preferred: true,
+    });
     expect(fixture.nativeElement.querySelector('.form-feedback')?.textContent).toContain(
-      'Your favourite was not saved',
+      'Favourite location saved.',
     );
+    expect(fixture.nativeElement.textContent).toContain('Vancouver, Canada');
   });
 });

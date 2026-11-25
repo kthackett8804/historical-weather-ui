@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { SAMPLE_REVIEWS, SAMPLE_WEATHER } from '../../weather-samples';
-import type { WeatherRecord, WeatherReview } from '../../weather-samples';
+import type { WeatherRecord, WeatherReview } from '../../models';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-weather-details',
@@ -9,27 +10,31 @@ import type { WeatherRecord, WeatherReview } from '../../weather-samples';
   template: `
     <section aria-labelledby="details-title">
       <h1 id="details-title">Weather Details</h1>
-      @if (weather; as record) {
-        <p role="status">Sample record: {{ record.location }}, {{ record.country }}</p>
+      @if (loading()) {
+        <p role="status">Loading weather details...</p>
+      } @else if (error()) {
+        <p role="alert">{{ error() }}</p>
+      } @else if (weather(); as record) {
+        <p role="status">{{ record.location_name }}, {{ record.country }}</p>
         <dl>
-          <dt>Date</dt>
-          <dd>{{ record.date }}</dd>
+          <dt>Last updated</dt>
+          <dd>{{ record.last_updated }}</dd>
           <dt>Conditions</dt>
-          <dd>{{ record.condition }}</dd>
+          <dd>{{ record.condition_text }}</dd>
           <dt>Temperature</dt>
-          <dd>{{ record.temperatureC }}°C</dd>
+          <dd>{{ record.temperature_celsius }}°C</dd>
           <dt>Precipitation</dt>
-          <dd>{{ record.precipitationMm }} mm</dd>
+          <dd>{{ record.precip_mm }} mm</dd>
         </dl>
         <nav aria-label="Related weather details">
-          <a [routerLink]="['/weather', record.id, 'air-quality']">Air quality</a>
-          <a [routerLink]="['/weather', record.id, 'astronomical-events']"> Astronomical events </a>
+          <a [routerLink]="['/weather', record._id, 'air-quality']">Air quality</a>
+          <a [routerLink]="['/weather', record._id, 'astronomical-events']"> Astronomical events </a>
         </nav>
       } @else {
         <p role="status">
           {{
             weatherId
-              ? 'No sample weather record found for this ID.'
+              ? 'No weather record found for this ID.'
               : 'Select a weather record to see details.'
           }}
         </p>
@@ -37,20 +42,19 @@ import type { WeatherRecord, WeatherReview } from '../../weather-samples';
 
       <section aria-labelledby="reviews-title">
         <h2 id="reviews-title">Reviews</h2>
-        @if (reviews.length) {
+        @if (reviews().length) {
           <ul>
-            @for (review of reviews; track review.id) {
+            @for (review of reviews(); track review._id) {
               <li>
-                <h3>{{ review.author }} · {{ review.rating }} / 5</h3>
+                <h3>{{ review.username }} · {{ review.rating }} / 5</h3>
                 <p>{{ review.comment }}</p>
-                <p>{{ review.date }}</p>
               </li>
             }
           </ul>
         } @else {
           <p>No reviews are available for this record.</p>
         }
-        @if (weather) {
+        @if (weather()) {
           <form (submit)="submitReview($event)" novalidate>
             <h3>Add or update a review</h3>
             <label for="rating">Rating</label>
@@ -65,7 +69,7 @@ import type { WeatherRecord, WeatherReview } from '../../weather-samples';
             <label for="review-text">Review</label>
             <textarea id="review-text" rows="4" required (input)="onReviewInput($event)"></textarea>
             <button type="submit">Submit review</button>
-            <p class="review-feedback" role="status" aria-live="polite">{{ feedback }}</p>
+            <p class="review-feedback" role="status" aria-live="polite">{{ feedback() }}</p>
           </form>
         } @else {
           <p>Review form is unavailable until a weather record is selected.</p>
@@ -132,17 +136,45 @@ import type { WeatherRecord, WeatherReview } from '../../weather-samples';
 })
 export class WeatherDetails implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly api = inject(ApiService);
   protected weatherId: string | null = null;
-  protected weather: WeatherRecord | undefined;
-  protected reviews: WeatherReview[] = [];
+  protected weather = signal<WeatherRecord | null>(null);
+  protected reviews = signal<WeatherReview[]>([]);
+  protected loading = signal(false);
+  protected error = signal('');
   protected rating = '';
   protected reviewText = '';
-  protected feedback = '';
+  protected feedback = signal('');
 
   ngOnInit(): void {
     this.weatherId = this.route.snapshot.paramMap.get('id');
-    this.weather = SAMPLE_WEATHER.find((record) => record.id === this.weatherId);
-    this.reviews = SAMPLE_REVIEWS.filter((review) => review.weatherId === this.weatherId);
+    if (!this.weatherId) return;
+
+    this.loading.set(true);
+    this.api.getWeatherRecord(this.weatherId).subscribe({
+      next: (response) => {
+        this.weather.set(response.weather);
+        this.loading.set(false);
+      },
+      error: (error: unknown) => {
+        this.error.set(
+          error instanceof HttpErrorResponse
+            ? error.error?.message ?? 'Unable to load this weather record.'
+            : 'Unable to load this weather record.',
+        );
+        this.loading.set(false);
+      },
+    });
+    this.api.getWeatherRecordReviews(this.weatherId).subscribe({
+      next: (response) => this.reviews.set(response.weather_reviews),
+      error: (error: unknown) => {
+        this.feedback.set(
+          error instanceof HttpErrorResponse
+            ? error.error?.message ?? 'Unable to load reviews.'
+            : 'Unable to load reviews.',
+        );
+      },
+    });
   }
 
   protected onRatingChange(event: Event): void {
@@ -157,10 +189,32 @@ export class WeatherDetails implements OnInit {
     event.preventDefault();
 
     if (!this.rating || !this.reviewText.trim()) {
-      this.feedback = 'Enter a rating and review to continue.';
+      this.feedback.set('Enter a rating and review to continue.');
       return;
     }
 
-    this.feedback = 'Reviews are not connected in this preview. Your review was not saved.';
+    if (!this.weatherId) return;
+
+    this.feedback.set('');
+    this.api
+      .createWeatherReview(this.weatherId, {
+        rating: Number(this.rating),
+        comment: this.reviewText.trim(),
+      })
+      .subscribe({
+        next: (response) => {
+          this.reviews.update((reviews) => [...reviews, response.weather_review]);
+          this.feedback.set('Your review was submitted.');
+          this.rating = '';
+          this.reviewText = '';
+        },
+        error: (error: unknown) => {
+          this.feedback.set(
+            error instanceof HttpErrorResponse
+              ? error.error?.message ?? 'Unable to submit your review.'
+              : 'Unable to submit your review.',
+          );
+        },
+      });
   }
 }

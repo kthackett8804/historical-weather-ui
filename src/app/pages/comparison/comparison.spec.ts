@@ -1,27 +1,35 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
-import { ActivatedRoute } from '@angular/router';
-import { AuthService } from '@auth0/auth0-angular';
+import { provideRouter, ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
+import { ApiAuthService } from '../../services/api-auth.service';
+import { ApiService } from '../../services/api.service';
 import { Comparison } from './comparison';
 
 describe('Comparison', () => {
-  it('shows a warning popup for unauthenticated users', () => {
-    TestBed.overrideProvider(AuthService, {
-      useValue: { isAuthenticated$: of(false), isLoading$: of(false) },
-    });
-    TestBed.overrideProvider(ActivatedRoute, {
-      useValue: { snapshot: { queryParamMap: { get: () => 'true' } } },
-    });
-    const fixture = TestBed.createComponent(Comparison);
-    fixture.detectChanges();
+  let apiServiceSpy: {
+    getComparisonAreas: ReturnType<typeof vi.fn>;
+    createComparisonArea: ReturnType<typeof vi.fn>;
+    compareCountries: ReturnType<typeof vi.fn>;
+  };
 
-    expect(fixture.nativeElement.querySelector('[role="alertdialog"]')?.textContent).toContain(
-      'authenticated user',
-    );
-    expect(fixture.nativeElement.querySelector('form')).toBeNull();
-  });
   beforeEach(async () => {
+    apiServiceSpy = {
+      getComparisonAreas: vi.fn().mockReturnValue(of({
+        comparison_areas: [
+          { _id: 'area-1', country: 'Canada', location_name: 'Vancouver', label: 'Home' },
+          { _id: 'area-2', country: 'Iceland', location_name: 'Reykjavik', label: 'Trip' },
+        ],
+      })),
+      createComparisonArea: vi.fn().mockReturnValue(of({
+        location: { _id: 'area-3', country: 'Japan', location_name: 'Tokyo', label: 'Trip 2' },
+      })),
+      compareCountries: vi.fn().mockReturnValue(of({
+        requested: ['Canada', 'Iceland'],
+        countries: [{ country: 'Canada', avg_temperature: 12, records: 5 }],
+      })),
+    };
+
     await TestBed.configureTestingModule({
       imports: [Comparison],
       providers: [
@@ -31,63 +39,56 @@ describe('Comparison', () => {
           useValue: { snapshot: { queryParamMap: { get: () => null } } },
         },
         {
-          provide: AuthService,
-          useValue: { isAuthenticated$: of(true), isLoading$: of(false) },
+          provide: ApiAuthService,
+          useValue: {
+            isAuthenticated$: of(true),
+            isLoading$: of(false),
+            currentSession: { user_id: 'user-1' },
+          },
         },
+        { provide: ApiService, useValue: apiServiceSpy },
       ],
     }).compileComponents();
   });
 
-  it('explains that no weather records are selected for comparison', () => {
+  it('loads the user’s comparison areas and retrieves comparison results', () => {
     const fixture = TestBed.createComponent(Comparison);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Comparison');
-    expect(fixture.nativeElement.querySelector('[role="status"]')?.textContent).toContain(
-      'No weather records are selected',
-    );
-  });
+    expect(apiServiceSpy.getComparisonAreas).toHaveBeenCalledWith('user-1');
+    expect(fixture.nativeElement.textContent).toContain('Vancouver, Canada');
+    expect(fixture.nativeElement.querySelector('button').disabled).toBe(false);
 
-  it('keeps the comparison action disabled until records are selected', () => {
-    const fixture = TestBed.createComponent(Comparison);
+    (fixture.nativeElement.querySelector('[data-compare]') as HTMLButtonElement).click();
     fixture.detectChanges();
-
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-
-    expect(button.disabled).toBe(true);
-    expect(button.textContent).toContain('Compare selected records');
+    expect(apiServiceSpy.compareCountries).toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Canada');
+    expect(fixture.nativeElement.textContent).toContain('12');
   });
 
-  it('provides a locally validated form for a comparison area', () => {
+  it('saves a comparison area through the API', () => {
     const fixture = TestBed.createComponent(Comparison);
     fixture.detectChanges();
 
     const country = fixture.nativeElement.querySelector('#comparison-country') as HTMLInputElement;
     const location = fixture.nativeElement.querySelector('#comparison-location') as HTMLInputElement;
     const label = fixture.nativeElement.querySelector('#comparison-label') as HTMLInputElement;
-    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
-
-    expect(country.required).toBe(true);
-    expect(location.required).toBe(true);
-    expect(label.required).toBe(true);
-
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.form-feedback')?.textContent).toContain(
-      'Enter a country, location name, and label',
-    );
-
-    country.value = 'Iceland';
-    country.dispatchEvent(new Event('input', { bubbles: true }));
-    location.value = 'Reykjavik';
-    location.dispatchEvent(new Event('input', { bubbles: true }));
-    label.value = 'Winter trip';
-    label.dispatchEvent(new Event('input', { bubbles: true }));
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    country.value = 'Japan';
+    country.dispatchEvent(new Event('input'));
+    location.value = 'Tokyo';
+    location.dispatchEvent(new Event('input'));
+    label.value = 'Trip 2';
+    label.dispatchEvent(new Event('input'));
+    (fixture.nativeElement.querySelector('form') as HTMLFormElement)
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.form-feedback')?.textContent).toContain(
-      'Your comparison area was not saved',
-    );
+    expect(apiServiceSpy.createComparisonArea).toHaveBeenCalledWith('user-1', {
+      country: 'Japan',
+      location_name: 'Tokyo',
+      label: 'Trip 2',
+    });
+    expect(fixture.nativeElement.textContent).toContain('Comparison area saved.');
+    expect(fixture.nativeElement.textContent).toContain('Tokyo, Japan');
   });
 });

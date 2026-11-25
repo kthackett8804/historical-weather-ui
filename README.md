@@ -11,6 +11,18 @@ ng serve
 ```
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+The development server proxies `/api` requests to `http://127.0.0.1:8080` using
+[`proxy.conf.json`](./proxy.conf.json), so browser requests are same-origin in
+development. This proxy does not configure CORS on the backend; deployments
+that call the API from a different origin must allow that origin in the API's
+CORS configuration.
+
+The Flask API also supports a verified Auth0-to-API JWT exchange at
+`POST /api/v1.0/auth0-login`. Before starting Flask, configure
+`AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, and a random `JWT_SECRET_KEY` of at least 32
+bytes. `CORS_ALLOWED_ORIGINS` can override the default local origins
+(`http://localhost:4200,http://127.0.0.1:4200`). Never commit the JWT signing
+key.
 
 ## Code scaffolding
 

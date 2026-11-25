@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { AuthService } from '@auth0/auth0-angular';
+import { Component, inject, Input, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ApiAuthService } from '../../services/api-auth.service';
+import { ValidationService } from '../../services/validation.service';
 
 @Component({
   selector: 'app-login',
@@ -16,7 +17,12 @@ import { AuthService } from '@auth0/auth0-angular';
           <a class="brand" routerLink="/" aria-label="Weather Atlas home">☁</a>
         }
         <h1 id="login-title">Weather Atlas</h1>
-        <p>Welcome back</p>
+        @if (showWarning) {
+          <p role="alert">Sign in to continue to the requested page.</p>
+        }
+        @if (registrationComplete()) {
+          <p role="status">Account created. You can now sign in.</p>
+        }
         @if (auth.isLoading$ | async) {
           <p role="status">Loading authentication...</p>
         } @else if ((auth.isAuthenticated$ | async) && (auth.user$ | async); as user) {
@@ -24,10 +30,50 @@ import { AuthService } from '@auth0/auth0-angular';
           <button type="button" (click)="logout()">Logout</button>
         } @else {
           @if (auth.error$ | async; as error) {
-            <p class="error" role="alert">{{ error.message }}</p>
+            <p class="error" role="alert">{{ error }}</p>
           }
-          <button data-auth-login type="button" (click)="login()">Log In</button>
-          <button data-auth-signup type="button" (click)="signUp()">Sign Up</button>
+          @if (isCreatingAccount()) {
+            <p>Create an email/password account</p>
+            <form (submit)="register($event)">
+              <label for="register-username">Username</label>
+              <input id="register-username" type="text" autocomplete="username" required
+                [value]="username" (input)="onUsernameInput($event)" />
+              <label for="register-email">Email</label>
+              <input id="register-email" type="email" autocomplete="email" required
+                [value]="email" (input)="onEmailInput($event)" />
+              <label for="register-password">Password</label>
+              <input id="register-password" type="password" autocomplete="new-password" required
+                [value]="password" (input)="onPasswordInput($event)" />
+              <button type="submit" [disabled]="isSubmitting()">Create account</button>
+              @if (feedback()) {
+                <p class="error" role="alert">{{ feedback() }}</p>
+              }
+            </form>
+            <button type="button" data-show-login (click)="showLogin()">Back to sign in</button>
+          } @else {
+            <p>Welcome back</p>
+            <form (submit)="login($event)">
+              <label for="username">Username</label>
+              <input id="username" type="text" autocomplete="username" required
+                [value]="username" (input)="onUsernameInput($event)" />
+              <label for="password">Password</label>
+              <input id="password" type="password" autocomplete="current-password" required
+                [value]="password" (input)="onPasswordInput($event)" />
+              <button type="submit" [disabled]="isSubmitting()">Log in with email</button>
+              @if (feedback()) {
+                <p class="error" role="alert">{{ feedback() }}</p>
+              }
+            </form>
+            <button data-auth-login type="button" (click)="loginWithAuth0()">
+              Log in with Auth0
+            </button>
+            <button data-auth-signup type="button" (click)="signUpWithAuth0()">
+              Sign up with Auth0
+            </button>
+            <button data-show-register type="button" (click)="showRegistration()">
+              Create an email/password account
+            </button>
+          }
         }
       </section>
     </div>
@@ -81,6 +127,17 @@ import { AuthService } from '@auth0/auth0-angular';
       width: 100%;
       margin-top: 0.75rem;
     }
+    form {
+      display: grid;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      text-align: left;
+    }
+    input {
+      min-height: 2.75rem;
+      padding: 0.5rem 0.75rem;
+      font: inherit;
+    }
     button:focus-visible,
     a:focus-visible {
       outline: 3px solid #1d67c8;
@@ -109,21 +166,98 @@ import { AuthService } from '@auth0/auth0-angular';
 })
 export class Login {
   @Input() embedded = false;
-  protected readonly auth = inject(AuthService);
+  protected readonly auth = inject(ApiAuthService);
+  private readonly validation = inject(ValidationService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  protected readonly showWarning = Boolean(this.route.snapshot.queryParamMap.get('authRequired'));
+  protected username = '';
+  protected email = '';
+  protected password = '';
+  protected feedback = signal('');
+  protected isSubmitting = signal(false);
+  protected isCreatingAccount = signal(false);
+  protected registrationComplete = signal(false);
 
-  protected login(): void {
-    this.auth.loginWithRedirect();
+  protected onUsernameInput(event: Event): void {
+    this.username = (event.target as HTMLInputElement).value;
   }
 
-  protected signUp(): void {
-    this.auth.loginWithRedirect({
-      authorizationParams: { screen_hint: 'signup' },
+  protected onEmailInput(event: Event): void {
+    this.email = (event.target as HTMLInputElement).value;
+  }
+
+  protected onPasswordInput(event: Event): void {
+    this.password = (event.target as HTMLInputElement).value;
+  }
+
+  protected showRegistration(): void {
+    this.feedback.set('');
+    this.registrationComplete.set(false);
+    this.isCreatingAccount.set(true);
+  }
+
+  protected showLogin(): void {
+    this.feedback.set('');
+    this.isCreatingAccount.set(false);
+  }
+
+  protected login(event: Event): void {
+    event.preventDefault();
+    if (!this.username.trim() || !this.password) {
+      this.feedback.set('Enter a username and password.');
+      return;
+    }
+
+    this.feedback.set('');
+    this.isSubmitting.set(true);
+    this.auth.login({ username: this.username.trim(), password: this.password }).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        void this.router.navigateByUrl('/');
+      },
+      error: () => this.isSubmitting.set(false),
     });
+  }
+
+  protected register(event: Event): void {
+    event.preventDefault();
+    const username = this.validation.validateUsername(this.username);
+    const email = this.validation.validateEmail(this.email);
+    const password = this.validation.validatePassword(this.password);
+    if (!username.valid || !email.valid || !password.valid) {
+      this.feedback.set(
+        username.error ?? email.error ?? password.error ?? 'Check your account details.',
+      );
+      return;
+    }
+
+    this.feedback.set('');
+    this.isSubmitting.set(true);
+    this.auth.register({
+      username: this.username.trim(),
+      email: this.email.trim(),
+      password: this.password,
+    }).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.isCreatingAccount.set(false);
+        this.registrationComplete.set(true);
+        this.password = '';
+      },
+      error: () => this.isSubmitting.set(false),
+    });
+  }
+
+  protected loginWithAuth0(): void {
+    this.auth.startAuth0Login();
+  }
+
+  protected signUpWithAuth0(): void {
+    this.auth.startAuth0Signup();
   }
 
   protected logout(): void {
-    this.auth.logout({
-      logoutParams: { returnTo: window.location.origin },
-    });
+    this.auth.logout().subscribe({ error: () => undefined });
   }
 }

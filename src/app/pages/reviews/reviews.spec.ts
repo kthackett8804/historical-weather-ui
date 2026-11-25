@@ -1,32 +1,56 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+import { vi } from 'vitest';
+import { ApiService } from '../../services/api.service';
 import { Reviews } from './reviews';
 
 describe('Reviews', () => {
+  let apiServiceSpy: {
+    getWeatherRecords: ReturnType<typeof vi.fn>;
+    getWeatherReviews: ReturnType<typeof vi.fn>;
+    createWeatherReview: ReturnType<typeof vi.fn>;
+  };
+
   beforeEach(async () => {
+    apiServiceSpy = {
+      getWeatherRecords: vi.fn().mockReturnValue(of({
+        data: [{ _id: 'weather-1', location_name: 'Vancouver', country: 'Canada' }],
+        page: 1, per_page: 100, total_pages: 1, total_count: 1,
+      })),
+      getWeatherReviews: vi.fn().mockReturnValue(of({
+        weather_reviews: [{
+          _id: 'review-1', username: 'Maya Chen', comment: 'Clear skies.',
+          rating: 5, favourite_location: false, weather_id: 'weather-1',
+          location_name: 'Vancouver', country: 'Canada',
+        }],
+      })),
+      createWeatherReview: vi.fn().mockReturnValue(of({
+        weather_review: {
+          _id: 'review-2', username: 'Weather user', comment: 'Clear skies.',
+          rating: 5, favourite_location: false,
+        },
+      })),
+    };
+
     await TestBed.configureTestingModule({
       imports: [Reviews],
-      providers: [provideRouter([])],
+      providers: [provideRouter([]), { provide: ApiService, useValue: apiServiceSpy }],
     }).compileComponents();
   });
 
-  it('renders sample reviews with links to their weather records', () => {
+  it('loads real reviews and available weather records from the API', () => {
     const fixture = TestBed.createComponent(Reviews);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Reviews');
-    expect(fixture.nativeElement.querySelector('[role="status"]')?.textContent).toContain(
-      'sample reviews',
-    );
-    const links = fixture.nativeElement.querySelectorAll(
-      'a[href^="/weather/"]',
-    ) as NodeListOf<HTMLAnchorElement>;
-    expect(links.length).toBeGreaterThan(0);
-    expect(links[0]?.getAttribute('href')).toBe('/weather/weather-1');
+    expect(apiServiceSpy.getWeatherReviews).toHaveBeenCalled();
+    expect(apiServiceSpy.getWeatherRecords).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Maya Chen');
+    expect(fixture.nativeElement.querySelector('a[href="/weather/weather-1"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#review-weather')?.textContent).toContain('Vancouver');
   });
 
-  it('provides a locally validated form for adding a review', async () => {
+  it('validates a review then sends it through the API', () => {
     const fixture = TestBed.createComponent(Reviews);
     fixture.detectChanges();
 
@@ -35,10 +59,6 @@ describe('Reviews', () => {
     const comment = fixture.nativeElement.querySelector('#review-comment') as HTMLTextAreaElement;
     const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
 
-    expect(weather.required).toBe(true);
-    expect(rating.required).toBe(true);
-    expect(comment.required).toBe(true);
-
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.form-feedback')?.textContent).toContain(
@@ -46,18 +66,20 @@ describe('Reviews', () => {
     );
 
     weather.value = 'weather-1';
-    weather.dispatchEvent(new Event('change', { bubbles: true }));
+    weather.dispatchEvent(new Event('change'));
     rating.value = '5';
-    rating.dispatchEvent(new Event('change', { bubbles: true }));
+    rating.dispatchEvent(new Event('change'));
     comment.value = 'Clear skies in the afternoon.';
-    comment.dispatchEvent(new Event('input', { bubbles: true }));
-    await fixture.whenStable();
-    fixture.detectChanges();
+    comment.dispatchEvent(new Event('input'));
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     fixture.detectChanges();
 
+    expect(apiServiceSpy.createWeatherReview).toHaveBeenCalledWith('weather-1', {
+      comment: 'Clear skies in the afternoon.',
+      rating: 5,
+    });
     expect(fixture.nativeElement.querySelector('.form-feedback')?.textContent).toContain(
-      'Your review was not saved',
+      'Review submitted.',
     );
   });
 });
