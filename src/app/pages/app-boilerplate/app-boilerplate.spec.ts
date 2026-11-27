@@ -22,6 +22,7 @@ describe('AppShell', () => {
           useValue: {
             isLoading$: of(false),
             isAuthenticated$: of(false),
+            session$: of(null),
             user$: of(null),
             error$: of(null),
             logout: () => of({ message: 'Logged out' }),

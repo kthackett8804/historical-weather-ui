@@ -43,8 +43,8 @@ describe('Analytics', () => {
     const fixture = TestBed.createComponent(Analytics);
     fixture.detectChanges();
 
-    expect(apiServiceSpy.getExtremeWeather).toHaveBeenCalled();
-    expect(apiServiceSpy.getAirQualityRanking).toHaveBeenCalled();
+    expect(apiServiceSpy['getExtremeWeather']).toHaveBeenCalled();
+    expect(apiServiceSpy['getAirQualityRanking']).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Canada');
     expect(fixture.nativeElement.textContent).toContain('Air Quality Ranking');
   });
@@ -60,10 +60,10 @@ describe('Analytics', () => {
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     fixture.detectChanges();
 
-    expect(apiServiceSpy.getCountrySummary).toHaveBeenCalledWith('Iceland');
-    expect(apiServiceSpy.getMonthlyTrend).toHaveBeenCalledWith('Iceland');
-    expect(apiServiceSpy.getPollutantAverages).toHaveBeenCalledWith('Iceland');
-    expect(apiServiceSpy.getMoonPhaseDistribution).toHaveBeenCalledWith('Iceland');
+    expect(apiServiceSpy['getCountrySummary']).toHaveBeenCalledWith('Iceland');
+    expect(apiServiceSpy['getMonthlyTrend']).toHaveBeenCalledWith('Iceland');
+    expect(apiServiceSpy['getPollutantAverages']).toHaveBeenCalledWith('Iceland');
+    expect(apiServiceSpy['getMoonPhaseDistribution']).toHaveBeenCalledWith('Iceland');
     expect(fixture.nativeElement.textContent).toContain('Average temperature: 4°C');
   });
 });

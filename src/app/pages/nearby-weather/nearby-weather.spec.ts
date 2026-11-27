@@ -1,5 +1,7 @@
 
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { ApiService } from '../../services/api.service';
@@ -26,6 +28,7 @@ describe('NearbyWeather', () => {
     await TestBed.configureTestingModule({
       imports: [NearbyWeather],
       providers: [
+        provideRouter([]),
         { provide: ApiService, useValue: apiServiceSpy },
       ],
     }).compileComponents();
@@ -144,9 +147,13 @@ describe('NearbyWeather', () => {
 
   it('displays an error when the nearby weather API request fails', () => {
     apiServiceSpy.getNearbyWeather.mockReturnValue(
-      throwError(() => ({
-        error: { message: 'Unable to retrieve weather data.' },
-      })),
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 500,
+            error: { message: 'Unable to retrieve weather data.' },
+          }),
+      ),
     );
 
     const fixture = TestBed.createComponent(NearbyWeather);

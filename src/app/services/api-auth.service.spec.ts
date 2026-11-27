@@ -73,26 +73,8 @@ describe('ApiAuthService', () => {
     expect(service.isAdmin).toBe(true);
     expect(service.hasRole('admin')).toBe(true);
     expect(service.hasRole('user')).toBe(false);
-    expect(service.canAccess()).toBe(true);
-    expect(service.canAccess('admin')).toBe(true);
   });
 
-  it('allows authenticated users and restricts admin access with one role check', () => {
-    service.login({ username: 'weather-user', password: 'secret' }).subscribe();
-    httpTestingController.expectOne('/api/v1.0/login').flush({
-      token: 'application-jwt',
-      username: 'weather-user',
-      user_id: 'user-id',
-      role: 'user',
-    });
-
-    expect(service.canAccess()).toBe(true);
-    expect(service.canAccess('admin')).toBe(false);
-
-    service.clearSession();
-
-    expect(service.canAccess()).toBe(false);
-  });
 
   it('clears the in-memory session when backend logout fails', () => {
     service.login({ username: 'weather-user', password: 'secret' }).subscribe();

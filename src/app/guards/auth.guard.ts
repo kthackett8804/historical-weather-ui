@@ -1,6 +1,7 @@
+
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { map, take } from 'rxjs/operators';
+import { map, take } from 'rxjs';
 import { ApiAuthService } from '../services/api-auth.service';
 
 export const authGuard: CanActivateFn = (route, state) => {
@@ -13,23 +14,27 @@ export const authGuard: CanActivateFn = (route, state) => {
       if (loading) {
         return false;
       }
+
       if (authService.isAuthenticated) {
         return true;
       }
-      const url = typeof state.url === 'string' ? state.url : '';
-      if (url.split('?')[0].endsWith('/favourites') ||
-          url.split('?')[0].endsWith('/comparison')) {
-        if (route.queryParams['authRequired'] === 'true') {
-          return true;
-        }
-        return router.createUrlTree([url.split('?')[0]], {
+
+      const url = state.url.split('?')[0];
+      const isProtectedPage = url.endsWith('/favourites') || url.endsWith('/comparison');
+
+      if (isProtectedPage && route.queryParams['authRequired'] === 'true') {
+        return true;
+      }
+
+      if (isProtectedPage) {
+        return router.createUrlTree([url], {
           queryParams: { authRequired: 'true' },
         });
       }
-      void router.navigate(['/login'], {
+
+      return router.createUrlTree(['/login'], {
         queryParams: { authRequired: 'true' },
       });
-      return false;
     }),
   );
 };

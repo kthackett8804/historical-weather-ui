@@ -21,8 +21,7 @@ describe('Reviews', () => {
       getWeatherReviews: vi.fn().mockReturnValue(of({
         weather_reviews: [{
           _id: 'review-1', username: 'Maya Chen', comment: 'Clear skies.',
-          rating: 5, favourite_location: false, weather_id: 'weather-1',
-          location_name: 'Vancouver', country: 'Canada',
+          rating: 5, favourite_location: false,
         }],
       })),
       createWeatherReview: vi.fn().mockReturnValue(of({
@@ -46,7 +45,7 @@ describe('Reviews', () => {
     expect(apiServiceSpy.getWeatherReviews).toHaveBeenCalled();
     expect(apiServiceSpy.getWeatherRecords).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Maya Chen');
-    expect(fixture.nativeElement.querySelector('a[href="/weather/weather-1"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('a[href="/weather/weather-1"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('#review-weather')?.textContent).toContain('Vancouver');
   });
 

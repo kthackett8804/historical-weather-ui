@@ -37,13 +37,19 @@ describe('Profile', () => {
     }).compileComponents();
   });
 
-  it('loads the current user profile from the API', () => {
+  it('loads the current user profile from the API', async () => {
     const fixture = TestBed.createComponent(Profile);
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(apiServiceSpy.getUser).toHaveBeenCalledWith('user-1');
-    expect(fixture.nativeElement.textContent).toContain('weather-user');
-    expect(fixture.nativeElement.textContent).toContain('user@example.com');
+    expect(
+      (fixture.nativeElement.querySelector('#profile-username') as HTMLInputElement).value,
+    ).toBe('weather-user');
+    expect(
+      (fixture.nativeElement.querySelector('#profile-email') as HTMLInputElement).value,
+    ).toBe('user@example.com');
   });
 
   it('saves profile changes using the backend message response', () => {

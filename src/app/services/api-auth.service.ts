@@ -112,13 +112,6 @@ export class ApiAuthService {
     return this.session.value?.role === role;
   }
 
-  canAccess(requiredRole?: 'user' | 'admin'): boolean {
-    if (!this.isAuthenticated) return false;
-    if (requiredRole === 'admin') return this.isAdmin;
-
-    return true;
-  }
-
   constructor() {
     combineLatest([
       this.auth0.isAuthenticated$,

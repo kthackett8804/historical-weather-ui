@@ -43,7 +43,7 @@ describe('Login', () => {
         provideRouter([]),
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { queryParamMap: { get: () => 'authenticated-user-required' } } },
+          useValue: { snapshot: { queryParamMap: { get: () => 'true' } } },
         },
         { provide: ApiAuthService, useValue: auth },
       ],
@@ -114,7 +114,7 @@ describe('Login', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain(
-      'authenticated',
+      'Sign in to continue to the requested page.',
     );
   });
 

@@ -12,7 +12,7 @@ import { ApiTokenStore } from '../services/api-token.store';
 export class AuthTokenInterceptor implements HttpInterceptor {
   private readonly tokenStore = inject(ApiTokenStore);
 
-  //add token  localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+  //  const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
   intercept(req: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     if (req.headers.has('Authorization')) {
       return next.handle(req);

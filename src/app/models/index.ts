@@ -331,8 +331,8 @@ export interface CreateAstronomicalEventRequest {
 
 /** Request body for partially updating an astronomical event. */
 export interface UpdateAstronomicalEventRequest {
-  event: string;
-  time: string | null;
+  event?: string;
+  time?: string | null;
 }
 
 // Review Models

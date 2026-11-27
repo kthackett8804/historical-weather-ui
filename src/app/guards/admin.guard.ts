@@ -13,7 +13,7 @@ export const adminGuard: CanActivateFn = () => {
       if (loading) {
         return false;
       }
-      if (authService.isAuthenticated && authService.user?.role === 'admin') {
+      if (authService.isAuthenticated && authService.isAdmin) {
         return true;
       }
       void router.navigate(['/']);

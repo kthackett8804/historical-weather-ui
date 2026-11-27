@@ -1,13 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import type { WeatherRecord, WeatherReview } from '../../models';
 import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-reviews',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule],
   template: `
     <section aria-labelledby="reviews-title">
       <h1 id="reviews-title">Reviews</h1>
@@ -19,17 +18,8 @@ import { ApiService } from '../../services/api.service';
         <ul>
           @for (review of reviews(); track review._id) {
             <li>
-              @if (review.weather_id) {
-                <a [routerLink]="['/weather', review.weather_id]">
-                  <h2>{{ review.username }} · {{ review.rating }} / 5</h2>
-                  <p>{{ review.comment }}</p>
-                  <p>Review for {{ weatherLocation(review) }}</p>
-                  <span>View weather record and reviews</span>
-                </a>
-              } @else {
-                <h2>{{ review.username }} · {{ review.rating }} / 5</h2>
-                <p>{{ review.comment }}</p>
-              }
+              <h2>{{ review.username }} · {{ review.rating }} / 5</h2>
+              <p>{{ review.comment }}</p>
             </li>
           }
         </ul>
@@ -73,9 +63,7 @@ import { ApiService } from '../../services/api.service';
     :host { display: block; }
     ul { display: grid; gap: 1rem; max-width: 48rem; padding: 0; list-style: none; }
     li { border: 1px solid #d7e0ed; background: white; }
-    li > a { display: block; padding: 1rem; color: inherit; text-decoration: none; }
-    li > a:hover { border-color: #1d67c8; }
-    li > a:focus-visible { outline: 3px solid #1d67c8; outline-offset: 3px; }
+    li { padding: 1rem; }
     .review-form-section { max-width: 32rem; margin-block: 1.5rem; }
     form { display: grid; gap: 0.75rem; }
     select, textarea, button { min-height: 2.75rem; padding: 0.5rem 0.75rem; font: inherit; }
@@ -114,11 +102,6 @@ export class Reviews implements OnInit {
       },
     });
   }
-
-  protected weatherLocation(review: WeatherReview): string {
-    return [review.location_name, review.country].filter(Boolean).join(', ') || 'weather record';
-  }
-
   protected onWeatherChange(event: Event): void {
     this.weatherId = (event.target as HTMLSelectElement).value;
   }
@@ -144,13 +127,7 @@ export class Reviews implements OnInit {
       rating: Number(this.rating),
     }).subscribe({
       next: (response) => {
-        const record = this.weatherRecords().find((item) => item._id === this.weatherId);
-        this.reviews.update((reviews) => [...reviews, {
-          ...response.weather_review,
-          weather_id: this.weatherId,
-          country: record?.country,
-          location_name: record?.location_name,
-        }]);
+        this.reviews.update((reviews) => [...reviews, response.weather_review]);
         this.feedback.set('Review submitted.');
         this.saving.set(false);
       },

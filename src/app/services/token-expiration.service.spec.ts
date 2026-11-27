@@ -32,7 +32,7 @@ describe('TokenExpirationService', () => {
     const warningStates: boolean[] = [];
     service.expirationWarning$.subscribe((warning) => warningStates.push(warning));
 
-    service.setExpirationTimestamp(Date.now() + 4 * 60_000);
+    service.setToken(createToken(Math.floor(Date.now() / 1000) + 4 * 60));
     service.dismissWarning();
 
     expect(warningStates).toEqual([false, true, false]);

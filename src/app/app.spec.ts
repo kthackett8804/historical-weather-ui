@@ -16,6 +16,7 @@ describe('App', () => {
           useValue: {
             isLoading$: of(false),
             isAuthenticated$: of(false),
+            session$: of(null),
             user$: of(null),
             error$: of(null),
             login: () => of({
